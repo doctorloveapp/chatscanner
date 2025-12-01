@@ -1,0 +1,25 @@
+name: device_screenshot
+description: A Flutter plugin that can helps you to take screenshot your overall device using media projection and foreground service.
+version: 0.0.8
+homepage: https://github.com/HasanToufiqAhamed/device_screenshot
+
+environment:
+  sdk: '>=2.18.0 <4.0.0'
+  flutter: ">=3.3.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.flutter.device_screenshot
+        pluginClass: DeviceScreenshotPlugin

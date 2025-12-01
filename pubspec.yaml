@@ -1,0 +1,30 @@
+name: ghost_detector
+description: A viral Ghost Detector app powered by Gemini AI.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_generative_ai: ^0.4.0
+  image_picker: ^1.0.7
+  flutter_animate: ^4.5.0
+  google_fonts: ^6.1.0
+  flutter_overlay_window: any
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.5
+  device_screenshot:
+    path: packages/device_screenshot
+  flutter_markdown: ^0.6.19
+  uuid: ^4.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
