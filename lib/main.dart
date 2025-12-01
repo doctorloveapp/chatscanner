@@ -347,6 +347,76 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     }
   }
 
+  Future<void> _resetAndShowInstructions() async {
+    try {
+      final extDir = await getExternalStorageDirectory();
+      if (extDir != null) {
+        final prefFile = File('${extDir.path}/dont_show_instructions.txt');
+        if (await prefFile.exists()) {
+          await prefFile.delete();
+        }
+      }
+      _dontShowInstructionAgain = false;
+    } catch (e) {
+      debugPrint("Error resetting instruction preference: $e");
+    }
+
+    // Show instruction dialog
+    if (mounted) {
+      bool dontShowAgain = false;
+      await showDialog(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text("📱 Istruzioni"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "CONFIGURAZIONE INIZIALE\n\n"
+                  "Nella schermata di autorizzazione:\n"
+                  "1. Clicca sulla freccia del menu\n"
+                  "2. Seleziona 'Schermo intero'\n"
+                  "3. Premi 'Avvia ora'\n\n"
+                  "COME USARE L'ICONA 👻\n\n"
+                  "• Tap singolo → Cattura screenshot\n"
+                  "• Doppio tap → Torna all'app\n\n"
+                  "Trascina l'icona dove preferisci!",
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: dontShowAgain,
+                      onChanged: (v) =>
+                          setDialogState(() => dontShowAgain = v ?? false),
+                    ),
+                    const Text("Non mostrare più"),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  if (dontShowAgain) {
+                    await _saveInstructionPreference();
+                  }
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                  }
+                },
+                child: const Text("HO CAPITO",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -485,11 +555,15 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Nella prossima schermata:\n\n"
+                  "CONFIGURAZIONE INIZIALE\n\n"
+                  "Nella schermata di autorizzazione:\n"
                   "1. Clicca sulla freccia del menu\n"
-                  "2. Seleziona 'Schermo intero' (NON 'Un'app singola')\n"
+                  "2. Seleziona 'Schermo intero'\n"
                   "3. Premi 'Avvia ora'\n\n"
-                  "Solo così potrai catturare screenshot di altre app!",
+                  "COME USARE L'ICONA 👻\n\n"
+                  "• Tap singolo → Cattura screenshot\n"
+                  "• Doppio tap → Torna all'app\n\n"
+                  "Trascina l'icona dove preferisci!",
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -604,6 +678,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         positionGravity: PositionGravity.auto,
         height: 200,
         width: 200,
+        startPosition: const OverlayPosition(0, 200), // Start below status bar area
       );
       debugPrint("Overlay Show Command Sent.");
 
@@ -790,6 +865,13 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           fontWeight: FontWeight.bold,
           color: const Color(0xFFBA68C8), // Pastel Purple
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline, color: Color(0xFFBA68C8)),
+            tooltip: 'Mostra istruzioni',
+            onPressed: _resetAndShowInstructions,
+          ),
+        ],
       ),
       extendBodyBehindAppBar: true,
       body: Container(
