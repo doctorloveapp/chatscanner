@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.3-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-3.0.2-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/platform-Android-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter" alt="Flutter">
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
@@ -25,10 +25,12 @@
 ### Key Features
 
 - 🔴 **Live Scanner Mode** - Floating overlay to capture screenshots from any app
-- 🤖 **AI Analysis** - Powered by Google Gemini (2.5-pro with 1.5-pro fallback)
+- 🤖 **Multi-AI Cascade** - Gemini 2.5 Pro → Llama 3.2 Vision → Qwen2-VL (automatic fallback)
 - 📊 **Interest Score** - Get a 0-100 rating of conversation engagement
 - 💬 **Phrase Rating** - Individual analysis of key messages
 - 🎯 **Next Move Suggestion** - AI-generated response recommendations
+- 🔄 **Smart Retry** - 3 attempts per model with exponential backoff
+- 📅 **Daily Rate Limit** - 10 analyses per day (resets at midnight)
 
 ---
 
@@ -37,6 +39,25 @@
 | Home Screen | Live Scanner | Analysis Results |
 |:-----------:|:------------:|:----------------:|
 | Upload or scan | Floating overlay | AI-powered insights |
+
+---
+
+## 🤖 AI Cascade System (v3.0.2)
+
+The app uses a 3-tier AI fallback system for maximum reliability:
+
+| Priority | Model | Provider |
+|:--------:|-------|----------|
+| 1️⃣ | Gemini 2.5 Pro | Google AI |
+| 2️⃣ | Llama 3.2 11B Vision | HuggingFace |
+| 3️⃣ | Qwen2-VL-7B-Instruct | HuggingFace |
+
+**How it works:**
+
+- Each model gets 3 retry attempts with exponential backoff (2s → 4s → 8s)
+- If all 3 attempts fail, automatically falls back to the next model
+- Users never notice the switch - completely transparent
+- Daily limit: 10 analyses (resets at midnight)
 
 ---
 
@@ -186,7 +207,9 @@ The API key is securely embedded and obfuscated at build time.
 | `image_picker` | ^1.0.7 | Gallery image selection |
 | `path_provider` | ^2.1.5 | File system access |
 | `permission_handler` | ^11.3.1 | Runtime permission management |
-| `envied` | ^0.5.4 | Secure API key obfuscation |
+| `envied` | ^0.5.4 | Secure API key management |
+| `http` | ^1.2.0 | HuggingFace API calls |
+| `shared_preferences` | ^2.2.2 | Rate limiting storage |
 
 ---
 

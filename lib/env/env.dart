@@ -6,4 +6,7 @@ part 'env.g.dart';
 abstract class Env {
   @EnviedField(varName: 'GEMINI_API_KEY')
   static const String geminiApiKey = _Env.geminiApiKey;
+
+  @EnviedField(varName: 'HF_TOKEN')
+  static const String hfToken = _Env.hfToken;
 }

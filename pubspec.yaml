@@ -1,7 +1,7 @@
 name: doctor_love
 description: An AI-powered chat analyzer that helps you understand interest levels in conversations using Google Gemini.
 publish_to: "none"
-version: 2.0.3+4
+version: 3.0.2+5
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -17,6 +17,8 @@ dependencies:
   permission_handler: ^11.3.1
   path_provider: ^2.1.5
   envied: ^0.5.4
+  http: ^1.2.0
+  shared_preferences: ^2.2.2
   device_screenshot:
     path: packages/device_screenshot
   flutter_markdown: ^0.6.19

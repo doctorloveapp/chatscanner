@@ -1,16 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:doctor_love/env/env.dart';
+
+import 'services/ai_cascade_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -753,6 +752,16 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   Future<void> _analyzeImages() async {
     if (_images.isEmpty) return;
 
+    // Check rate limit first
+    final remaining = await AICascadeService.getRemainingAnalyses();
+    if (remaining <= 0) {
+      setState(() {
+        _error =
+            '⏰ Hai raggiunto il limite di 10 analisi oggi. Riprova domani!';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _loadingMessage = _loadingMessages[0];
@@ -767,7 +776,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         imageBytesList.add(await img.readAsBytes());
       }
 
-      final result = await _callGeminiWithFallback(imageBytesList);
+      final result = await AICascadeService.analyzeImages(imageBytesList);
 
       setState(() {
         _analysisResult = result;
@@ -775,51 +784,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       });
     } catch (e) {
       setState(() {
-        _error = _parseError(e);
+        _error = AICascadeService.parseError(e);
         _isLoading = false;
       });
     }
-  }
-
-  /// Parses errors from Gemini API into user-friendly messages
-  String _parseError(dynamic error) {
-    final errorStr = error.toString().toLowerCase();
-
-    if (errorStr.contains('api_key_invalid') ||
-        errorStr.contains('invalid api key')) {
-      return "\u274c API Key non valida. Verifica che sia corretta.";
-    }
-    if (errorStr.contains('quota') ||
-        errorStr.contains('rate limit') ||
-        errorStr.contains('resource_exhausted')) {
-      return "\u23f3 Limite richieste raggiunto. Riprova tra qualche minuto.";
-    }
-    if (errorStr.contains('permission') || errorStr.contains('forbidden')) {
-      return "\u26d4 API Key non autorizzata per questo modello.";
-    }
-    if (errorStr.contains('not found') || errorStr.contains('model')) {
-      return "\u26a0\ufe0f Modello AI non disponibile. Riprova.";
-    }
-    if (errorStr.contains('network') ||
-        errorStr.contains('connection') ||
-        errorStr.contains('timeout')) {
-      return "\ud83d\udcf6 Errore di connessione. Verifica internet.";
-    }
-    if (errorStr.contains('empty response')) {
-      return "\ud83e\udd14 L'AI non ha risposto. Prova con screenshot pi\u00f9 chiari.";
-    }
-    if (errorStr.contains('json') ||
-        errorStr.contains('parse') ||
-        errorStr.contains('format')) {
-      return "\u26a0\ufe0f Errore nel formato risposta. Riprova.";
-    }
-
-    // Generic fallback with shortened error
-    final shortError = error.toString();
-    if (shortError.length > 100) {
-      return "\u274c Errore: ${shortError.substring(0, 100)}...";
-    }
-    return "\u274c Analisi fallita: $shortError";
   }
 
   void _cycleLoadingMessages() async {
@@ -832,78 +800,6 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         _loadingMessage = _loadingMessages[index];
       });
     }
-  }
-
-  Future<Map<String, dynamic>> _callGeminiWithFallback(
-      List<Uint8List> imageBytesList) async {
-    try {
-      debugPrint(
-          "--- GEMINI LOG: Tentativo con modello PRIMARIO (gemini-2.5-pro) ---");
-      return await _callGemini(imageBytesList, 'gemini-2.5-pro');
-    } catch (e) {
-      debugPrint("--- GEMINI LOG: gemini-2.5-pro FALLITO. Errore: $e ---");
-      debugPrint(
-          "--- GEMINI LOG: Tentativo con modello FALLBACK (gemini-1.5-pro) ---");
-      return await _callGemini(imageBytesList, 'gemini-1.5-pro');
-    }
-  }
-
-  Future<Map<String, dynamic>> _callGemini(
-      List<Uint8List> imageBytesList, String modelName) async {
-    debugPrint("--- GEMINI LOG: Inizio richiesta a $modelName ---");
-    final model = GenerativeModel(
-      model: modelName,
-      apiKey: Env.geminiApiKey,
-      generationConfig: GenerationConfig(
-        responseMimeType: 'application/json',
-      ),
-      systemInstruction: Content.system(
-          "Sei Doctor Love, il dating coach pi\u00f9 cinico e geniale d'Italia. "
-          "Analizza uno o pi\u00f9 screenshot di chat WhatsApp/Instagram/Telegram (pu\u00f2 esserci testo, emoji, timestamp, doppi check). "
-          "Valuta il livello di interesse reale dell'altra persona considerando: "
-          "- lunghezza e frequenza dei messaggi "
-          "- uso di emoji e punteggiatura "
-          "- chi inizia le conversazioni "
-          "- tempo di risposta visibile "
-          "- tono complessivo (entusiasta, freddo, amichevole, secco)\n\n"
-          "RESTITUISCI SOLO ed ESCLUSIVAMENTE un oggetto JSON valido (niente markdown, niente ```json, niente testo prima o dopo) con ESATTAMENTE questo schema:\n\n"
-          "{\n"
-          "  \"score\": 0-100,\n"
-          "  \"analysis\": \"stringa breve (max 140 caratteri), spiritosa, leggermente pungente e brutale se necessario, sempre in italiano perfetto\",\n"
-          "  \"line_rating\": [\n"
-          "    {\n"
-          "      \"text\": \"testo esatto della frase (max 80 caratteri)\",\n"
-          "      \"rating\": 1-10,\n"
-          "      \"sender\": \"me\" oppure \"them\"\n"
-          "    }\n"
-          "  ],\n"
-          "  \"next_move\": \"il messaggio esatto da inviare ora (1-3 frasi massimo, naturale, italiano perfetto, che massimizzi le probabilit\u00e0 di risposta entusiasta). Se la chat \u00e8 morta scrivi solo: 'Molla, non c'\u00e8 pi\u00f9 niente da fare \ud83d\udc80'\"\n"
-          "}\n\n"
-          "Regole ferree:\n"
-          "- Mai gentile per forza, sii onesto\n"
-          "- Usa sempre italiano corrente (niente frasi da manuale del 1800)\n"
-          "- Se non vedi testo leggibile rispondi con score 0 e analysis 'Screenshot illeggibile o vuoto'\n"
-          "- Il JSON deve essere parsabile al 100%"),
-    );
-
-    final List<Part> parts = [TextPart("Analyze these chat screenshots.")];
-    for (var bytes in imageBytesList) {
-      parts.add(DataPart('image/jpeg', bytes));
-    }
-
-    final content = [Content.multi(parts)];
-
-    final response = await model.generateContent(content);
-    final text = response.text;
-
-    debugPrint("--- GEMINI LOG: Risposta ricevuta da $modelName ---");
-
-    if (text == null) throw Exception("Empty response from Gemini");
-
-    final cleanText =
-        text.replaceAll('```json', '').replaceAll('```', '').trim();
-
-    return jsonDecode(cleanText) as Map<String, dynamic>;
   }
 
   @override
