@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.0.2-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-3.1.8-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/platform-Android-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter" alt="Flutter">
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
@@ -42,7 +42,7 @@
 
 ---
 
-## 🤖 AI Cascade System (v3.0.2)
+## 🤖 AI Cascade System (v3.1.5)
 
 The app uses a 3-tier AI fallback system for maximum reliability:
 
@@ -57,7 +57,17 @@ The app uses a 3-tier AI fallback system for maximum reliability:
 - Each model gets 3 retry attempts with exponential backoff (2s → 4s → 8s)
 - If all 3 attempts fail, automatically falls back to the next model
 - Users never notice the switch - completely transparent
+
+**Rate Limiting:**
+
 - Daily limit: 10 analyses (resets at midnight)
+- Visual counter in AppBar: ❤️ X/10
+- Color changes: 💜 Purple (4-10) → 🧡 Orange (1-3) → ❤️ Red (0)
+
+**Android 14+ Optimization:**
+
+- Uses `MediaProjectionConfig.createConfigForDefaultDisplay()`
+- Reduces repeated screen capture permission prompts
 
 ---
 

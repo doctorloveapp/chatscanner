@@ -299,6 +299,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   Map<String, dynamic>? _analysisResult;
   String _loadingMessage = "Inizializzazione...";
   bool _dontShowInstructionAgain = false;
+  int _remainingAnalyses = 10; // Daily rate limit counter
 
   final ImagePicker _picker = ImagePicker();
 
@@ -320,6 +321,17 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     _loadScreenshotsFromFolder();
     // Load saved preference for instruction dialog
     _loadInstructionPreference();
+    // Load remaining analyses counter
+    _loadRemainingAnalyses();
+  }
+
+  Future<void> _loadRemainingAnalyses() async {
+    final remaining = await AICascadeService.getRemainingAnalyses();
+    if (mounted) {
+      setState(() {
+        _remainingAnalyses = remaining;
+      });
+    }
   }
 
   Future<void> _loadInstructionPreference() async {
@@ -374,11 +386,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "CONFIGURAZIONE INIZIALE\n\n"
-                  "Nella schermata di autorizzazione:\n"
-                  "1. Clicca sulla freccia del menu\n"
-                  "2. Seleziona 'Schermo intero'\n"
-                  "3. Premi 'Avvia ora'\n\n"
+                  "COME FUNZIONA\n\n"
+                  "1. Premi 'Attiva Scanner Live'\n"
+                  "2. Concedi il permesso di cattura schermo\n"
+                  "3. Apri la chat da analizzare\n\n"
                   "COME USARE L'ICONA 👻\n\n"
                   "• Tap singolo → Cattura screenshot\n"
                   "• Doppio tap → Torna all'app\n\n"
@@ -555,11 +566,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "CONFIGURAZIONE INIZIALE\n\n"
-                  "Nella schermata di autorizzazione:\n"
-                  "1. Clicca sulla freccia del menu\n"
-                  "2. Seleziona 'Schermo intero'\n"
-                  "3. Premi 'Avvia ora'\n\n"
+                  "COME FUNZIONA\n\n"
+                  "1. Premi 'Attiva Scanner Live'\n"
+                  "2. Clicca su 'Condividi schermo'\n"
+                  "3. Apri la chat da analizzare\n\n"
                   "COME USARE L'ICONA 👻\n\n"
                   "• Tap singolo → Cattura screenshot\n"
                   "• Doppio tap → Torna all'app\n\n"
@@ -756,8 +766,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     final remaining = await AICascadeService.getRemainingAnalyses();
     if (remaining <= 0) {
       setState(() {
+        _remainingAnalyses = 0;
         _error =
-            '⏰ Hai raggiunto il limite di 10 analisi oggi. Riprova domani!';
+            '⏰ Hai esaurito le 10 analisi giornaliere!\n\n🌙 Il contatore si resetterà a mezzanotte.\nTorna domani per altre 10 analisi gratuite! 💕';
       });
       return;
     }
@@ -778,11 +789,17 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
       final result = await AICascadeService.analyzeImages(imageBytesList);
 
+      // Refresh remaining analyses counter
+      await _loadRemainingAnalyses();
+
       setState(() {
         _analysisResult = result;
         _isLoading = false;
       });
     } catch (e) {
+      // Refresh remaining analyses counter even on error
+      await _loadRemainingAnalyses();
+
       setState(() {
         _error = AICascadeService.parseError(e);
         _isLoading = false;
@@ -824,92 +841,181 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         ],
       ),
       extendBodyBehindAppBar: true,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF3E5F5), // Lavender
-              Colors.white,
-              Color(0xFFFCE4EC), // Light Pink
-            ],
-          ),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 100, 20, 20),
-          child: Column(
-            children: [
-              if (_error != null)
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                        color: const Color(0xFFE57373)), // Pastel Red
-                    borderRadius: BorderRadius.circular(12),
-                    color: const Color(0xFFFFEBEE),
-                  ),
-                  child: Text(
-                    _error!,
-                    style: const TextStyle(color: Color(0xFFC62828)),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              if (_analysisResult == null && !_isLoading) ...[
-                const SizedBox(height: 20),
-
-                // Live Mode Button
-                ElevatedButton.icon(
-                  onPressed: _startLiveMode,
-                  icon: const Icon(Icons.emergency_recording,
-                      color: Colors.white),
-                  label: const Text("ATTIVA SCANNER LIVE 👻",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF06292), // Pink
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 30, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                  ),
-                ).animate().shimmer(duration: 3.seconds),
-
-                const SizedBox(height: 30),
-
-                if (_images.isEmpty)
-                  _buildUploadButton()
-                else
-                  _buildImagePreviewList(),
-
-                const SizedBox(height: 20),
-
-                // Clear screenshots button
-                if (_images.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: _clearAllScreenshots,
-                    icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                    label: const Text(
-                      "Cancella tutti gli screenshot",
-                      style: TextStyle(color: Colors.red),
+      body: Stack(
+        children: [
+          // Main content
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFF3E5F5), // Lavender
+                  Colors.white,
+                  Color(0xFFFCE4EC), // Light Pink
+                ],
+              ),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 100, 20, 80),
+              child: Column(
+                children: [
+                  if (_error != null)
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                            color: const Color(0xFFE57373)), // Pastel Red
+                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFFFFEBEE),
+                      ),
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Color(0xFFC62828)),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
+                  if (_analysisResult == null && !_isLoading) ...[
+                    const SizedBox(height: 20),
 
-                const SizedBox(height: 20),
+                    // Live Mode Button
+                    ElevatedButton.icon(
+                      onPressed: _startLiveMode,
+                      icon: const Icon(Icons.emergency_recording,
+                          color: Colors.white),
+                      label: const Text("ATTIVA SCANNER LIVE 👻",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF06292), // Pink
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 30, vertical: 15),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30)),
+                      ),
+                    ).animate().shimmer(duration: 3.seconds),
 
-                if (_images.isNotEmpty) _buildAnalyzeButton(),
-              ] else if (_isLoading) ...[
-                const SizedBox(height: 100),
-                _buildLoadingView(),
-              ] else if (_analysisResult != null) ...[
-                _buildResultsView(),
-              ],
-            ],
+                    const SizedBox(height: 30),
+
+                    if (_images.isEmpty)
+                      _buildUploadButton()
+                    else
+                      _buildImagePreviewList(),
+
+                    const SizedBox(height: 20),
+
+                    // Clear screenshots button
+                    if (_images.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: _clearAllScreenshots,
+                        icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                        label: const Text(
+                          "Cancella tutti gli screenshot",
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+
+                    const SizedBox(height: 20),
+
+                    if (_images.isNotEmpty) _buildAnalyzeButton(),
+                  ] else if (_isLoading) ...[
+                    const SizedBox(height: 100),
+                    _buildLoadingView(),
+                  ] else if (_analysisResult != null) ...[
+                    _buildResultsView(),
+                  ],
+                ],
+              ),
+            ),
+          ), // Closes Container
+          // Floating counter positioned top-right, below AppBar
+          Positioned(
+            right: 16,
+            top: 90,
+            child: GestureDetector(
+              onTap: _showCounterExplanation,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _remainingAnalyses > 3
+                      ? const Color(0xFFE1BEE7).withOpacity(0.95)
+                      : _remainingAnalyses > 0
+                          ? const Color(0xFFFFE0B2).withOpacity(0.95)
+                          : const Color(0xFFFFCDD2).withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _remainingAnalyses > 0
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      size: 18,
+                      color: _remainingAnalyses > 3
+                          ? const Color(0xFF7B1FA2)
+                          : _remainingAnalyses > 0
+                              ? const Color(0xFFE65100)
+                              : const Color(0xFFC62828),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$_remainingAnalyses/10',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: _remainingAnalyses > 3
+                            ? const Color(0xFF7B1FA2)
+                            : _remainingAnalyses > 0
+                                ? const Color(0xFFE65100)
+                                : const Color(0xFFC62828),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
+        ], // Closes Stack children
+      ), // Closes Stack
+    );
+  }
+
+  void _showCounterExplanation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.favorite, color: Color(0xFFBA68C8)),
+            SizedBox(width: 8),
+            Text('Analisi Giornaliere'),
+          ],
         ),
+        content: const Text(
+          'Hai a disposizione 10 analisi gratuite ogni giorno.\n\n'
+          'Il contatore si resetta automaticamente a mezzanotte.\n\n'
+          '💜 Viola = 4-10 rimaste\n'
+          '🧡 Arancio = 1-3 rimaste\n'
+          '❤️ Rosso = 0 rimaste',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Ho capito!'),
+          ),
+        ],
       ),
     );
   }

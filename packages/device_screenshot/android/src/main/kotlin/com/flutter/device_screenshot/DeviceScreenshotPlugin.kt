@@ -138,10 +138,20 @@ class DeviceScreenshotPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, 
     }
 
     private fun requestMediaProjection() {
-        // On Android 14+ (API 34+), we must request permission FIRST, then start service
-        // The foreground service can only be started AFTER user grants permission
+        // On Android 14+ (API 34+), use MediaProjectionConfig to default to full-screen capture
+        // This reduces repeated permission prompts by remembering the "full screen" choice
+        val captureIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // API 34+ - use new config builder for full-screen mode
+            mediaProjectionManager.createScreenCaptureIntent(
+                android.media.projection.MediaProjectionConfig.createConfigForDefaultDisplay()
+            )
+        } else {
+            // API < 34 - use standard intent
+            mediaProjectionManager.createScreenCaptureIntent()
+        }
+        
         activityBinding?.activity?.startActivityForResult(
-            mediaProjectionManager.createScreenCaptureIntent(),
+            captureIntent,
             requestCodeForegroundService
         )
     }
