@@ -1,191 +1,277 @@
-# Chat Scanner App 📱
+# Doctor Love 💕
 
-Un'applicazione Flutter che utilizza l'IA di Google Gemini per analizzare screenshot di chat e valutare il livello di interesse, fornendo un punteggio e consigli su come rispondere.
+<p align="center">
+  <img src="assets/icon.png" alt="Doctor Love Logo" width="120" height="120">
+</p>
 
-## 📱 Stato Attuale
-- **Ultimo aggiornamento:** 1 Dicembre 2025
-- **Versione:** 1.0.0+1
-- **Stato:** ✅ **FUNZIONANTE AL 100%**
+<p align="center">
+  <strong>AI-Powered Chat Interest Analyzer</strong><br>
+  Analyze your chat screenshots and get AI-driven insights about interest levels
+</p>
 
----
-
-## ✅ Funzionalità Complete
-
-### 🔴 Modalità Live (Overlay Scanner)
-- Icona scanner (👻) trascinabile che fluttua sopra altre app
-- **Tap singolo**: Cattura screenshot dell'app sottostante
-- **Doppio tap / Pressione lunga**: Chiude l'overlay e torna all'app principale
-- Badge numerico che mostra quanti screenshot sono stati catturati
-- Gli screenshot vengono caricati automaticamente quando si ritorna all'app
-- Counter si resetta quando si inizia una nuova analisi
-
-### 📸 Cattura Screenshot
-- Utilizzo di MediaProjection API per catturare qualsiasi schermata
-- Servizio in foreground per mantenere la cattura attiva
-- Comunicazione file-based tra overlay e servizio nativo
-
-### 🤖 Analisi IA
-- Integrazione con Google Gemini (2.5-pro con fallback a 1.5-pro)
-- Analisi del livello di interesse (0-100)
-- Rating delle singole frasi
-- Suggerimento per la prossima mossa
-- Messaggi di loading professionali
-
-### 📂 Aggiunta Screenshot
-- **Scanner Live**: Cattura in tempo reale da altre app
-- **Da Dispositivo**: Seleziona immagini dalla galleria
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.0.3-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/platform-Android-green.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter" alt="Flutter">
+  <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
+</p>
 
 ---
 
-## 🛠 Architettura Tecnica
+## 📖 Overview
 
-### Problema Risolto: Overlay e Screenshot
-Il problema principale era far comunicare l'overlay Flutter (che gira in un processo isolato) con il servizio MediaProjection nativo.
+**Doctor Love** is a Flutter application that leverages Google Gemini AI to analyze chat screenshots and evaluate interest levels. The app provides a score (0-100), phrase-by-phrase analysis, and actionable suggestions for your next message.
 
-### Soluzione Implementata: Comunicazione File-Based
+### Key Features
+
+- 🔴 **Live Scanner Mode** - Floating overlay to capture screenshots from any app
+- 🤖 **AI Analysis** - Powered by Google Gemini (2.5-pro with 1.5-pro fallback)
+- 📊 **Interest Score** - Get a 0-100 rating of conversation engagement
+- 💬 **Phrase Rating** - Individual analysis of key messages
+- 🎯 **Next Move Suggestion** - AI-generated response recommendations
+
+---
+
+## 📱 Screenshots
+
+| Home Screen | Live Scanner | Analysis Results |
+|:-----------:|:------------:|:----------------:|
+| Upload or scan | Floating overlay | AI-powered insights |
+
+---
+
+## 🏗️ Architecture
+
+The application implements a sophisticated architecture to handle screen capture from a floating overlay, solving the challenge of cross-process communication in Flutter.
+
+### System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        ARCHITETTURA                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────┐         ┌─────────────────────────────┐   │
-│  │  Flutter Overlay │         │  MediaProjectionService.kt  │   │
-│  │  (ScannerOverlay)│         │  (Foreground Service)       │   │
-│  └────────┬────────┘         └──────────────┬──────────────┘   │
-│           │                                  │                  │
-│           │  1. Scrive file                  │  2. Polling      │
-│           │     "capture_request"            │     ogni 100ms   │
-│           ▼                                  ▼                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              ghost_comm/                                 │   │
-│  │  ├── capture_request  (trigger)                         │   │
-│  │  ├── capture_result   (success:/path o error:msg)       │   │
-│  │  └── reset_counter    (segnale reset contatore)         │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│           │                                  │                  │
-│           │  4. Legge risultato              │  3. Cattura e    │
-│           │     (polling 100ms)              │     scrive       │
-│           ▼                                  ▼                  │
-│  ┌─────────────────┐         ┌─────────────────────────────┐   │
-│  │  Overlay aggiorna│         │  Screenshot salvato in      │   │
-│  │  badge contatore │         │  screenshots/*.png          │   │
-│  └─────────────────┘         └─────────────────────────────┘   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                    DOCTOR LOVE ARCHITECTURE                      │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────┐         ┌────────────────────────────┐    │
+│  │  Flutter Overlay  │         │  MediaProjectionService    │    │
+│  │  (Isolated VM)    │         │  (Foreground Service)      │    │
+│  └─────────┬────────┘         └─────────────┬──────────────┘    │
+│            │                                 │                   │
+│            │  1. Write request file          │  2. Poll (100ms)  │
+│            ▼                                 ▼                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    ghost_comm/                            │   │
+│  │  ├── capture_request   (trigger capture)                 │   │
+│  │  ├── capture_result    (success:/path or error:msg)      │   │
+│  │  └── reset_counter     (reset overlay badge)             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│            │                                 │                   │
+│            │  4. Read result                 │  3. Capture &     │
+│            │     (poll 100ms)                │     write result  │
+│            ▼                                 ▼                   │
+│  ┌──────────────────┐         ┌────────────────────────────┐    │
+│  │  Update badge     │         │  Screenshot saved to       │    │
+│  │  counter          │         │  screenshots/*.png         │    │
+│  └──────────────────┘         └────────────────────────────┘    │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-### File Chiave
+### Core Components
 
-#### 1. `lib/main.dart`
-- **`overlayMain()`**: Entry point dell'overlay (annotato con `@pragma("vm:entry-point")`)
-- **`ScannerOverlayWidget`**: Widget StatefulWidget per l'overlay
-- **`_requestScreenshot()`**: Scrive file request e fa polling per il risultato
-- **`_closeAndReturnToApp()`**: Chiama MethodChannel per tornare all'app principale
-- **`_checkForReset()`**: Polling per rilevare reset del contatore
+| Component | Location | Description |
+|-----------|----------|-------------|
+| `main.dart` | `lib/` | Main app entry point and overlay widget |
+| `MediaProjectionService.kt` | `packages/device_screenshot/` | Native Android foreground service for screen capture |
+| `DeviceScreenshotPlugin.kt` | `packages/device_screenshot/` | Flutter-Android bridge via MethodChannel |
 
-#### 2. `packages/device_screenshot/.../MediaProjectionService.kt`
-- Servizio foreground con tipo `MEDIA_PROJECTION`
-- **`setupFilePolling()`**: Polling ogni 100ms per file `capture_request`
-- **`captureScreenshot()`**: Cattura via VirtualDisplay + ImageReader
-- **`writeResultFile()`**: Scrive `capture_result` con path o errore
+### Key Implementation Details
 
-#### 3. `packages/device_screenshot/.../DeviceScreenshotPlugin.kt`
-- **`requestMediaProjection`**: Avvia intent per permesso cattura schermo
-- **`checkMediaProjectionService`**: Verifica se il servizio è attivo
-- **`bringAppToForeground`**: Riporta l'app principale in primo piano
+#### Overlay Entry Point
+```dart
+@pragma("vm:entry-point")
+void overlayMain() {
+  runApp(const MaterialApp(
+    home: ScannerOverlayWidget(),
+  ));
+}
+```
 
-### Permessi Android Richiesti
+#### File-Based Communication
+The overlay runs in an isolated Flutter VM, making MethodChannel communication impossible. The solution uses file-based IPC:
+
+- **Request**: Overlay writes to `ghost_comm/capture_request`
+- **Response**: Native service writes to `ghost_comm/capture_result`
+- **Reset**: Main app writes to `ghost_comm/reset_counter`
+
+---
+
+## 📋 Requirements
+
+### Minimum Requirements
+- Android 8.0 (API level 26) or higher
+- Flutter SDK 3.2.0 or higher
+- Dart SDK 3.2.0 or higher
+
+### Permissions Required
 ```xml
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/>
-<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-```
-
-### Configurazione Servizio
-```xml
-<service
-    android:name=".src.MediaProjectionService"
-    android:foregroundServiceType="mediaProjection"
-    android:exported="false"/>
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 ```
 
 ---
 
-## 🔧 Problemi Risolti Durante lo Sviluppo
+## 🚀 Getting Started
 
-### 1. ❌ MethodChannel non funziona dall'overlay
-**Problema**: L'overlay gira in un processo Flutter separato, i MethodChannel non comunicano con il servizio principale.
-**Soluzione**: Comunicazione file-based tramite directory `ghost_comm/`.
+### Prerequisites
 
-### 2. ❌ FileObserver non rileva file creati dall'overlay
-**Problema**: FileObserver nativo non vedeva i file scritti dall'overlay Flutter.
-**Soluzione**: Sostituito con polling attivo ogni 100ms.
+1. Install [Flutter](https://flutter.dev/docs/get-started/install) (3.2.0+)
+2. Set up an Android device or emulator (API 26+)
+3. Obtain a [Google Gemini API key](https://makersuite.google.com/app/apikey)
 
-### 3. ❌ Overlay sparisce dopo il primo tap
-**Problema**: L'overlay si chiudeva o si spostava fuori schermo.
-**Soluzione**: 
-- Cambiato da `StatelessWidget` a `StatefulWidget`
-- Aggiunto `HitTestBehavior.opaque` al GestureDetector
-- Rimosso flag problematico, usato `OverlayFlag.defaultFlag`
-
-### 4. ❌ Doppio tap non torna all'app
-**Problema**: `FlutterOverlayWindow.closeOverlay()` chiudeva l'overlay ma non riportava l'app in primo piano.
-**Soluzione**: Aggiunto metodo `bringAppToForeground` via MethodChannel che usa `FLAG_ACTIVITY_REORDER_TO_FRONT`.
-
-### 5. ❌ MediaProjection crash su Android 14+
-**Problema**: Su API 34+ il servizio deve chiamare `startForeground()` immediatamente.
-**Soluzione**: Chiamata `startForegroundWithNotification()` subito in `onStartCommand()` prima di inizializzare la proiezione.
-
-### 6. ❌ Counter overlay non si resettava
-**Problema**: Quando si cliccava "Analizza un'altra chat", il contatore dell'overlay rimaneva al valore precedente.
-**Soluzione**: 
-- L'app crea un file `reset_counter` quando si cancellano gli screenshot
-- L'overlay fa polling ogni 500ms per questo file
-- Quando lo trova, resetta il contatore a 0 e cancella il file
-
----
-
-## 📦 Dipendenze
-
-```yaml
-dependencies:
-  flutter_overlay_window: ^0.5.0
-  google_generative_ai: ^0.4.3
-  flutter_animate: ^4.5.2
-  google_fonts: ^6.2.1
-  image_picker: ^1.1.2
-  path_provider: ^2.1.5
-```
-
----
-
-## 🚀 Come Eseguire
+### Installation
 
 ```bash
-# Connetti dispositivo Android
-adb devices
+# Clone the repository
+git clone https://github.com/sonsofart/chatscanner.git
+cd chatscanner
 
-# Esegui in debug
+# Install dependencies
+flutter pub get
+
+# Generate launcher icons
+flutter pub run flutter_launcher_icons
+
+# Run in debug mode
 flutter run
+```
 
-# Build APK release
+### Configuration
+
+Update the API key in `lib/main.dart`:
+```dart
+static const String _apiKey = 'YOUR_GEMINI_API_KEY';
+```
+
+---
+
+## 📦 Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `flutter_overlay_window` | ^0.5.0 | System overlay for floating scanner |
+| `google_generative_ai` | ^0.4.0 | Google Gemini AI integration |
+| `flutter_animate` | ^4.5.0 | UI animations |
+| `google_fonts` | ^6.1.0 | Typography (Orbitron, JetBrains Mono) |
+| `image_picker` | ^1.0.7 | Gallery image selection |
+| `path_provider` | ^2.1.5 | File system access |
+| `permission_handler` | ^11.3.1 | Runtime permission management |
+
+---
+
+## 🔧 Build
+
+### Debug Build
+```bash
+flutter run
+```
+
+### Release APK
+```bash
 flutter build apk --release
 ```
 
+### Release App Bundle (Play Store)
+```bash
+flutter build appbundle --release
+```
+
+Output locations:
+- APK: `build/app/outputs/flutter-apk/app-release.apk`
+- AAB: `build/app/outputs/bundle/release/app-release.aab`
+
 ---
 
-## 📝 Note per Android 14+ (API 34+)
+## 📝 Android 14+ (API 34+) Notes
 
-1. **MediaProjection**: Selezionare sempre "Schermo intero" (non "Un'app singola")
-2. **Overlay**: Concedere permesso "Mostra sopra altre app"
-3. **Notifica**: Il servizio mostra una notifica persistente durante la cattura
+When running on Android 14 or higher:
+
+1. **MediaProjection Permission**: Always select "Entire screen" (not "Single app")
+2. **Overlay Permission**: Grant "Display over other apps" permission
+3. **Foreground Service**: A persistent notification is shown during capture
 
 ---
 
-## 🎨 UI/UX
+## 🎨 Design System
 
-- **Tema**: Colori pastello (viola/rosa)
-- **Font**: Google Fonts (Orbitron per titoli, JetBrains Mono per testo)
-- **Animazioni**: Flutter Animate per shimmer, fade, scale effects
-- **Overlay**: Cerchio bianco 200x200dp con emoji 👻 e bordo viola
+| Element | Specification |
+|---------|--------------|
+| **Primary Color** | `#BA68C8` (Pastel Purple) |
+| **Secondary Color** | `#F06292` (Pastel Pink) |
+| **Title Font** | Orbitron (bold) |
+| **Body Font** | JetBrains Mono |
+| **Animations** | Shimmer, fade, scale via flutter_animate |
+
+---
+
+## 📁 Project Structure
+
+```
+doctor_love/
+├── android/                    # Android native code
+│   └── app/src/main/
+│       ├── AndroidManifest.xml
+│       └── res/                # Resources and launcher icons
+├── assets/
+│   └── icon.png               # App launcher icon
+├── lib/
+│   ├── main.dart              # Main app + overlay entry point
+│   └── overlay_entry_point.dart
+├── packages/
+│   └── device_screenshot/     # Custom plugin for MediaProjection
+│       └── android/src/main/kotlin/
+│           └── MediaProjectionService.kt
+├── pubspec.yaml
+└── README.md
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👨‍💻 Author
+
+**Sons of Art**
+
+- GitHub: [@sonsofart](https://github.com/sonsofart)
+
+---
+
+## 🙏 Acknowledgments
+
+- [Google Gemini](https://deepmind.google/technologies/gemini/) for AI capabilities
+- [Flutter](https://flutter.dev/) for the cross-platform framework
+- [flutter_overlay_window](https://pub.dev/packages/flutter_overlay_window) for overlay support
+
+---
+
+<p align="center">
+  Made with ❤️ and Flutter
+</p>

@@ -257,7 +257,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Chat Scanner',
+      title: 'Doctor Love',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
@@ -671,7 +671,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     try {
       await FlutterOverlayWindow.showOverlay(
         enableDrag: true,
-        overlayTitle: "Chat Scanner",
+        overlayTitle: "Doctor Love",
         overlayContent: "Tap = screenshot, Doppio tap = torna all'app",
         flag: OverlayFlag.defaultFlag,
         visibility: NotificationVisibility.visibilitySecret,
@@ -856,7 +856,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("CHAT SCANNER"),
+        title: const Text("DOCTOR LOVE"),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
