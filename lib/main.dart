@@ -10,6 +10,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:doctor_love/env/env.dart';
 
 void main() {
   runApp(const MyApp());
@@ -291,7 +292,7 @@ class ChatScannerHome extends StatefulWidget {
 
 class _ChatScannerHomeState extends State<ChatScannerHome>
     with WidgetsBindingObserver {
-  static const String _apiKey = 'AIzaSyAhA7Ny4V-QUlNhvJNEgcSEviN8VXOtBPE';
+  // API key is now securely obfuscated via envied package
 
   final List<File> _images = [];
   bool _isLoading = false;
@@ -678,7 +679,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         positionGravity: PositionGravity.auto,
         height: 200,
         width: 200,
-        startPosition: const OverlayPosition(0, 200), // Start below status bar area
+        startPosition:
+            const OverlayPosition(0, 200), // Start below status bar area
       );
       debugPrint("Overlay Show Command Sent.");
 
@@ -750,12 +752,6 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
   Future<void> _analyzeImages() async {
     if (_images.isEmpty) return;
-    if (_apiKey == 'YOUR_API_KEY_HERE') {
-      setState(() {
-        _error = "Inserisci la tua API Key in main.dart";
-      });
-      return;
-    }
 
     setState(() {
       _isLoading = true;
@@ -779,10 +775,51 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       });
     } catch (e) {
       setState(() {
-        _error = "Analisi fallita: $e";
+        _error = _parseError(e);
         _isLoading = false;
       });
     }
+  }
+
+  /// Parses errors from Gemini API into user-friendly messages
+  String _parseError(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+
+    if (errorStr.contains('api_key_invalid') ||
+        errorStr.contains('invalid api key')) {
+      return "\u274c API Key non valida. Verifica che sia corretta.";
+    }
+    if (errorStr.contains('quota') ||
+        errorStr.contains('rate limit') ||
+        errorStr.contains('resource_exhausted')) {
+      return "\u23f3 Limite richieste raggiunto. Riprova tra qualche minuto.";
+    }
+    if (errorStr.contains('permission') || errorStr.contains('forbidden')) {
+      return "\u26d4 API Key non autorizzata per questo modello.";
+    }
+    if (errorStr.contains('not found') || errorStr.contains('model')) {
+      return "\u26a0\ufe0f Modello AI non disponibile. Riprova.";
+    }
+    if (errorStr.contains('network') ||
+        errorStr.contains('connection') ||
+        errorStr.contains('timeout')) {
+      return "\ud83d\udcf6 Errore di connessione. Verifica internet.";
+    }
+    if (errorStr.contains('empty response')) {
+      return "\ud83e\udd14 L'AI non ha risposto. Prova con screenshot pi\u00f9 chiari.";
+    }
+    if (errorStr.contains('json') ||
+        errorStr.contains('parse') ||
+        errorStr.contains('format')) {
+      return "\u26a0\ufe0f Errore nel formato risposta. Riprova.";
+    }
+
+    // Generic fallback with shortened error
+    final shortError = error.toString();
+    if (shortError.length > 100) {
+      return "\u274c Errore: ${shortError.substring(0, 100)}...";
+    }
+    return "\u274c Analisi fallita: $shortError";
   }
 
   void _cycleLoadingMessages() async {
@@ -816,20 +853,37 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     debugPrint("--- GEMINI LOG: Inizio richiesta a $modelName ---");
     final model = GenerativeModel(
       model: modelName,
-      apiKey: _apiKey,
+      apiKey: Env.geminiApiKey,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
       ),
       systemInstruction: Content.system(
-          "Sei un Dating Coach di classe mondiale ed esperto di Teoria dei Giochi. Analizza visivamente questi screenshot di chat (potrebbero essere più di uno, in sequenza). "
-          "Guarda i timestamp, la lunghezza dei messaggi e l'uso delle emoji attraverso tutta la conversazione. "
-          "Restituisci SOLO un oggetto JSON grezzo (nessuna formattazione markdown) con questo schema: "
-          "{ "
-          "'score': (int 0-100 che rappresenta il livello di interesse), "
-          "'analysis': (string, un'analisi breve, spiritosa e leggermente pungente in ITALIANO), "
-          "'line_rating': [{'text': 'frase dalla chat', 'rating': (int 1-10)}], "
-          "'next_move': (string, IL CONSIGLIO D'ORO. Scrivi l'esatto messaggio di testo che l'utente dovrebbe inviare in questo momento per massimizzare l'impatto, in ITALIANO) "
-          "}"),
+          "Sei Doctor Love, il dating coach pi\u00f9 cinico e geniale d'Italia. "
+          "Analizza uno o pi\u00f9 screenshot di chat WhatsApp/Instagram/Telegram (pu\u00f2 esserci testo, emoji, timestamp, doppi check). "
+          "Valuta il livello di interesse reale dell'altra persona considerando: "
+          "- lunghezza e frequenza dei messaggi "
+          "- uso di emoji e punteggiatura "
+          "- chi inizia le conversazioni "
+          "- tempo di risposta visibile "
+          "- tono complessivo (entusiasta, freddo, amichevole, secco)\n\n"
+          "RESTITUISCI SOLO ed ESCLUSIVAMENTE un oggetto JSON valido (niente markdown, niente ```json, niente testo prima o dopo) con ESATTAMENTE questo schema:\n\n"
+          "{\n"
+          "  \"score\": 0-100,\n"
+          "  \"analysis\": \"stringa breve (max 140 caratteri), spiritosa, leggermente pungente e brutale se necessario, sempre in italiano perfetto\",\n"
+          "  \"line_rating\": [\n"
+          "    {\n"
+          "      \"text\": \"testo esatto della frase (max 80 caratteri)\",\n"
+          "      \"rating\": 1-10,\n"
+          "      \"sender\": \"me\" oppure \"them\"\n"
+          "    }\n"
+          "  ],\n"
+          "  \"next_move\": \"il messaggio esatto da inviare ora (1-3 frasi massimo, naturale, italiano perfetto, che massimizzi le probabilit\u00e0 di risposta entusiasta). Se la chat \u00e8 morta scrivi solo: 'Molla, non c'\u00e8 pi\u00f9 niente da fare \ud83d\udc80'\"\n"
+          "}\n\n"
+          "Regole ferree:\n"
+          "- Mai gentile per forza, sii onesto\n"
+          "- Usa sempre italiano corrente (niente frasi da manuale del 1800)\n"
+          "- Se non vedi testo leggibile rispondi con score 0 e analysis 'Screenshot illeggibile o vuoto'\n"
+          "- Il JSON deve essere parsabile al 100%"),
     );
 
     final List<Part> parts = [TextPart("Analyze these chat screenshots.")];

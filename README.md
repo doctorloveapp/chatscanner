@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.3-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.0.3-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/platform-Android-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter" alt="Flutter">
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
@@ -87,6 +87,7 @@ The application implements a sophisticated architecture to handle screen capture
 ### Key Implementation Details
 
 #### Overlay Entry Point
+
 ```dart
 @pragma("vm:entry-point")
 void overlayMain() {
@@ -97,6 +98,7 @@ void overlayMain() {
 ```
 
 #### File-Based Communication
+
 The overlay runs in an isolated Flutter VM, making MethodChannel communication impossible. The solution uses file-based IPC:
 
 - **Request**: Overlay writes to `ghost_comm/capture_request`
@@ -108,11 +110,13 @@ The overlay runs in an isolated Flutter VM, making MethodChannel communication i
 ## 📋 Requirements
 
 ### Minimum Requirements
+
 - Android 8.0 (API level 26) or higher
 - Flutter SDK 3.2.0 or higher
 - Dart SDK 3.2.0 or higher
 
 ### Permissions Required
+
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -128,7 +132,7 @@ The overlay runs in an isolated Flutter VM, making MethodChannel communication i
 
 1. Install [Flutter](https://flutter.dev/docs/get-started/install) (3.2.0+)
 2. Set up an Android device or emulator (API 26+)
-3. Obtain a [Google Gemini API key](https://makersuite.google.com/app/apikey)
+3. For developers: Configure your Gemini API key (see Developer Setup)
 
 ### Installation
 
@@ -149,10 +153,25 @@ flutter run
 
 ### Configuration
 
-Update the API key in `lib/main.dart`:
-```dart
-static const String _apiKey = 'YOUR_GEMINI_API_KEY';
-```
+The API key is securely embedded and obfuscated at build time.
+
+**For Developers:** If you're building from source, you need to configure your own API key:
+
+1. Create a `.env` file in the project root:
+
+   ```
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+2. Run code generation:
+
+   ```bash
+   flutter pub run build_runner build
+   ```
+
+3. The `.env` file is gitignored for security
+
+> **Security Note**: The API key is obfuscated using the `envied` package and further protected by Flutter's `--obfuscate` flag during release builds.
 
 ---
 
@@ -167,29 +186,42 @@ static const String _apiKey = 'YOUR_GEMINI_API_KEY';
 | `image_picker` | ^1.0.7 | Gallery image selection |
 | `path_provider` | ^2.1.5 | File system access |
 | `permission_handler` | ^11.3.1 | Runtime permission management |
+| `envied` | ^0.5.4 | Secure API key obfuscation |
 
 ---
 
 ## 🔧 Build
 
 ### Debug Build
+
 ```bash
 flutter run
 ```
 
 ### Release APK
+
 ```bash
 flutter build apk --release
 ```
 
 ### Release App Bundle (Play Store)
+
 ```bash
 flutter build appbundle --release
 ```
 
 Output locations:
+
 - APK: `build/app/outputs/flutter-apk/app-release.apk`
 - AAB: `build/app/outputs/bundle/release/app-release.aab`
+
+### Release APK with Obfuscation (Recommended)
+
+```bash
+flutter build apk --release --obfuscate --split-debug-info=./debug-info
+```
+
+This command enables code obfuscation for enhanced API key protection.
 
 ---
 
