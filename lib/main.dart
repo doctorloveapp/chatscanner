@@ -407,6 +407,15 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       final prefFile = File('${extDir.path}/dont_show_instructions.txt');
       if (await prefFile.exists()) {
         _dontShowInstructionAgain = true;
+      } else {
+        // First launch - show instructions automatically
+        if (mounted) {
+          // Delay slightly to ensure UI is ready
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) {
+            _resetAndShowInstructions();
+          }
+        }
       }
     } catch (e) {
       debugPrint("Error loading instruction preference: $e");
@@ -913,7 +922,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           children: [
             Icon(Icons.info_outline, color: Color(0xFFBA68C8)),
             SizedBox(width: 8),
-            Text('Crediti & Licenze'),
+            Flexible(child: Text('Crediti & Licenze')),
           ],
         ),
         content: SingleChildScrollView(
@@ -925,7 +934,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                 'Doctor Love',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              const Text('Sviluppato da Sons of Art\n'),
+              const Text('Sviluppato da Doctor Love Team\n'),
               const Text(
                 'Tecnologie utilizzate:',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -1021,8 +1030,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         content: const Text(
           '⚠️ Questa azione eliminerà:\n\n'
           '• Preferenze salvate\n'
-          '• API key personale (se inserita)\n'
-          '• Contatore analisi giornaliere\n\n'
+          '• API key personale (se inserita)\n\n'
           'L\'app tornerà alle impostazioni di fabbrica.\n\n'
           'Sei sicuro di voler procedere?',
         ),
@@ -1700,99 +1708,116 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                       child: ElevatedButton(
                         onPressed: _startLiveMode,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE040FB),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 28, vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(35),
-                          ),
+                          backgroundColor: Colors.transparent,
+                          padding: EdgeInsets.zero,
+                          shape: const CircleBorder(),
                           elevation: 0,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.bolt,
-                                color: Colors.white, size: 24),
-                            const SizedBox(width: 8),
-                            Text(
-                              "Usa scanner live",
-                              style: GoogleFonts.orbitron(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text("👻", style: TextStyle(fontSize: 20)),
-                          ],
-                        ),
-                      ),
-                    ).animate().shimmer(
-                        duration: 2.seconds,
-                        color: Colors.white.withOpacity(0.2)),
-
-                    const SizedBox(height: 40),
-
-                    // Upload area
-                    if (_images.isEmpty)
-                      GestureDetector(
-                        onTap: _pickImages,
                         child: Container(
-                          width: MediaQuery.of(context).size.width * 0.6,
-                          height: MediaQuery.of(context).size.width * 0.6,
+                          width: 120,
+                          height: 120,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: LinearGradient(
+                            gradient: const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.white.withOpacity(0.2),
-                                Colors.white.withOpacity(0.05),
+                                Color(0xFFE040FB),
+                                Color(0xFFBA68C8),
                               ],
-                            ),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.4),
-                              width: 2,
                             ),
                             boxShadow: [
                               BoxShadow(
+                                color: const Color(0xFFE040FB).withOpacity(0.6),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                              BoxShadow(
                                 color: const Color(0xFFE040FB).withOpacity(0.3),
-                                blurRadius: 30,
+                                blurRadius: 40,
                                 spreadRadius: 5,
                               ),
                             ],
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 2,
+                            ),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
+                              const Icon(Icons.bolt,
+                                  color: Colors.white, size: 32),
+                              const SizedBox(height: 4),
+                              Text(
+                                "SCANNER",
+                                style: GoogleFonts.orbitron(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const Text("👻", style: TextStyle(fontSize: 18)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .scale(
+                            begin: const Offset(1, 1),
+                            end: const Offset(1.05, 1.05),
+                            duration: 1500.ms)
+                        .then()
+                        .shimmer(
+                            duration: 2.seconds,
+                            color: Colors.white.withOpacity(0.3)),
+
+                    const SizedBox(height: 40),
+
+                    // Upload area (RECTANGULAR, NO ANIMATION)
+                    if (_images.isEmpty)
+                      GestureDetector(
+                        onTap: _pickImages,
+                        child: Container(
+                          width: MediaQuery.of(context).size.width * 0.8,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 20),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.white.withOpacity(0.15),
+                                Colors.white.withOpacity(0.05),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
                               Icon(
                                 Icons.cloud_upload_outlined,
-                                size: 60,
+                                size: 32,
                                 color: Colors.white.withOpacity(0.9),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(width: 12),
                               Text(
-                                "upload chat",
+                                "Upload Chat",
                                 style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 14,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white.withOpacity(0.9),
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              Icon(
-                                Icons.arrow_downward,
-                                size: 24,
-                                color: Colors.white.withOpacity(0.6),
                               ),
                             ],
                           ),
-                        ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(
-                            begin: 0,
-                            end: -10,
-                            duration: 2.seconds,
-                            curve: Curves.easeInOut),
+                        ),
                       )
                     else
                       _buildImagePreviewList(),
@@ -2035,28 +2060,50 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           const SizedBox(height: 16),
         ],
 
-        // Main analyze button
-        ElevatedButton(
-          onPressed: _analyzeImages,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFBA68C8), // Pastel Purple
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-            elevation: 5,
-            shadowColor: const Color(0xFFBA68C8).withValues(alpha: 0.4),
+        // Main analyze button with glow
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFE040FB).withOpacity(0.5),
+                blurRadius: 25,
+                spreadRadius: 3,
+              ),
+              BoxShadow(
+                color: const Color(0xFFBA68C8).withOpacity(0.3),
+                blurRadius: 40,
+                spreadRadius: 8,
+              ),
+            ],
           ),
-          child: Text(
-            "ANALIZZA ORA",
-            style: GoogleFonts.orbitron(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
+          child: ElevatedButton(
+            onPressed: _analyzeImages,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE040FB), // Brighter purple-pink
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30)),
+              elevation: 0,
+            ),
+            child: Text(
+              "ANALIZZA ORA",
+              style: GoogleFonts.orbitron(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
             ),
           ),
-        ).animate().shimmer(
-            duration: 2.seconds, color: Colors.white.withValues(alpha: 0.5)),
+        )
+            .animate(onPlay: (c) => c.repeat(reverse: true))
+            .scale(
+                begin: const Offset(1, 1),
+                end: const Offset(1.03, 1.03),
+                duration: 1200.ms)
+            .then()
+            .shimmer(duration: 2.seconds, color: Colors.white.withOpacity(0.4)),
       ],
     );
   }

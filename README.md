@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.5.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-3.5.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/platform-Android-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter" alt="Flutter">
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
@@ -334,7 +334,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-**Sons of Art**
+**Doctor Love Team**
 
 - GitHub: [@doctorloveapp](https://github.com/doctorloveapp)
 
