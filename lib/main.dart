@@ -635,95 +635,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '🔐 La tua chiave viene salvata in modo sicuro sul dispositivo e NON viene mai condivisa con noi.\n',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                if (hasKey) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.withOpacity(0.3)),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'API Key attiva! Stai usando analisi illimitate.',
-                            style: TextStyle(color: Colors.green, fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ] else ...[
-                  const Text(
-                    'Vantaggi con la tua Google API Key:\n',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const Text('✓ Analisi illimitate'),
-                  const Text('✓ Nessun limite giornaliero'),
-                  const Text('✓ Modello Gemini 2.5 Pro'),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '📋 Come ottenere la tua API Key Google:',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '1. Vai su Google AI Studio\n'
-                          '2. Accedi con il tuo account Google\n'
-                          '3. Clicca "Get API Key" → "Create API Key"\n'
-                          '4. Copia la chiave e incollala qui sotto',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: () async {
-                            final url =
-                                Uri.parse('https://aistudio.google.com/apikey');
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url,
-                                  mode: LaunchMode.externalApplication);
-                            }
-                          },
-                          child: const Row(
-                            children: [
-                              Icon(Icons.open_in_new,
-                                  size: 16, color: Color(0xFFBA68C8)),
-                              SizedBox(width: 4),
-                              Text(
-                                'Apri Google AI Studio',
-                                style: TextStyle(
-                                  color: Color(0xFFBA68C8),
-                                  fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                // API KEY INPUT FIELD FIRST
                 TextField(
                   controller: controller,
                   obscureText: hasKey,
@@ -746,6 +658,103 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                // SECURITY NOTE
+                const Text(
+                  '🔐 La tua chiave viene salvata in modo sicuro sul dispositivo e NON viene mai condivisa con noi.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                // STATUS OR INSTRUCTIONS
+                if (hasKey) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'API Key attiva! Stai usando analisi illimitate.',
+                            style: TextStyle(color: Colors.green, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  const Text(
+                    'Vantaggi con la tua Google API Key:',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text('✓ Analisi illimitate',
+                      style: TextStyle(fontSize: 12)),
+                  const Text('✓ Nessun limite giornaliero',
+                      style: TextStyle(fontSize: 12)),
+                  const Text('✓ Modello Gemini 2.5 Pro',
+                      style: TextStyle(fontSize: 12)),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '📋 Come ottenere la tua API Key:',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          '1. Vai su Google AI Studio\n'
+                          '2. Accedi con il tuo account Google\n'
+                          '3. Clicca "Get API Key" → "Create API Key"\n'
+                          '4. Copia e incolla qui sopra',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () async {
+                            final url =
+                                Uri.parse('https://aistudio.google.com/apikey');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url,
+                                  mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.open_in_new,
+                                  size: 14, color: Color(0xFFBA68C8)),
+                              SizedBox(width: 4),
+                              Text(
+                                'Apri Google AI Studio',
+                                style: TextStyle(
+                                  color: Color(0xFFBA68C8),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1438,8 +1447,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = themeService.isDarkMode;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -1455,19 +1466,27 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               // Pink outline effect using multiple shadows
               Shadow(
                   offset: const Offset(-1, -1),
-                  color: const Color(0xFFF06292),
+                  color: isDark
+                      ? const Color(0xFFCE93D8)
+                      : const Color(0xFFF06292),
                   blurRadius: 0),
               Shadow(
                   offset: const Offset(1, -1),
-                  color: const Color(0xFFF06292),
+                  color: isDark
+                      ? const Color(0xFFCE93D8)
+                      : const Color(0xFFF06292),
                   blurRadius: 0),
               Shadow(
                   offset: const Offset(-1, 1),
-                  color: const Color(0xFFF06292),
+                  color: isDark
+                      ? const Color(0xFFCE93D8)
+                      : const Color(0xFFF06292),
                   blurRadius: 0),
               Shadow(
                   offset: const Offset(1, 1),
-                  color: const Color(0xFFF06292),
+                  color: isDark
+                      ? const Color(0xFFCE93D8)
+                      : const Color(0xFFF06292),
                   blurRadius: 0),
             ],
           ),
@@ -1476,7 +1495,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           PopupMenuButton<String>(
             icon: Icon(Icons.menu, color: Colors.white.withOpacity(0.9)),
             tooltip: 'Menu',
-            color: Colors.white,
+            color: isDark ? const Color(0xFF2D2D2D) : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -1511,16 +1530,22 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           Container(
             width: double.infinity,
             height: double.infinity,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white,
-                  Color(0xFFFFD1DC), // Pink light
-                  Color(0xFFE040FB), // Neon pink/violet
-                ],
-                stops: [0.0, 0.15, 1.0],
+                colors: isDark
+                    ? [
+                        const Color(0xFF1A1A2E), // Dark blue-purple
+                        const Color(0xFF16213E), // Darker blue
+                        const Color(0xFF4A0E4E), // Dark purple
+                      ]
+                    : [
+                        Colors.white,
+                        const Color(0xFFFFD1DC), // Pink light
+                        const Color(0xFFE040FB), // Neon pink/violet
+                      ],
+                stops: const [0.0, 0.15, 1.0],
               ),
             ),
           ),
