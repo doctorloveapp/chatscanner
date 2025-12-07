@@ -8,10 +8,29 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:in_app_review/in_app_review.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'services/ai_cascade_service.dart';
+import 'services/remote_config_service.dart';
+import 'services/user_preferences_service.dart';
+import 'services/theme_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp();
+
+  // Initialize Remote Config (for dynamic daily limit)
+  await RemoteConfigService.initialize();
+
+  // Initialize Theme Service
+  await themeService.initialize();
+
   runApp(const MyApp());
 }
 
@@ -250,16 +269,33 @@ class _ScannerOverlayWidgetState extends State<ScannerOverlayWidget> {
   }
 }
 
-// ... (MyApp class remains the same) ...
-class MyApp extends StatelessWidget {
+// ... (MyApp class with theme support) ...
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Doctor Love',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    themeService.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    themeService.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    setState(() {});
+  }
+
+  // Light Theme
+  ThemeData get _lightTheme => ThemeData(
         brightness: Brightness.light,
         scaffoldBackgroundColor: Colors.white,
         primaryColor: const Color(0xFFBA68C8), // Pastel Purple
@@ -276,7 +312,36 @@ class MyApp extends StatelessWidget {
           displayColor: const Color(0xFF37474F),
         ),
         useMaterial3: true,
-      ),
+      );
+
+  // Dark Theme
+  ThemeData get _darkTheme => ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        primaryColor: const Color(0xFFCE93D8), // Light Purple
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFCE93D8),
+          secondary: Color(0xFFF48FB1), // Light Pink
+          surface: Color(0xFF1E1E1E),
+          onSurface: Colors.white,
+        ),
+        textTheme: GoogleFonts.jetBrainsMonoTextTheme(
+          ThemeData.dark().textTheme,
+        ).apply(
+          bodyColor: Colors.white,
+          displayColor: Colors.white,
+        ),
+        useMaterial3: true,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Doctor Love',
+      debugShowCheckedModeBanner: false,
+      theme: _lightTheme,
+      darkTheme: _darkTheme,
+      themeMode: themeService.themeMode,
       home: const ChatScannerHome(),
     );
   }
@@ -299,7 +364,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   Map<String, dynamic>? _analysisResult;
   String _loadingMessage = "Inizializzazione...";
   bool _dontShowInstructionAgain = false;
-  int _remainingAnalyses = 5; // Daily rate limit counter
+  int _remainingAnalyses =
+      RemoteConfigService.dailyAnalysisLimit; // Daily rate limit counter
 
   final ImagePicker _picker = ImagePicker();
 
@@ -426,6 +492,557 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         ),
       );
     }
+  }
+
+  // ============================================================
+  // MENU METHODS
+  // ============================================================
+
+  /// Build a PopupMenuItem with icon and text
+  PopupMenuItem<String> _buildMenuItem(
+    String value,
+    IconData icon,
+    String text, {
+    bool isDestructive = false,
+  }) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: isDestructive ? Colors.red : const Color(0xFFBA68C8),
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: TextStyle(
+              color: isDestructive ? Colors.red : Colors.black87,
+              fontWeight: isDestructive ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Handle menu item selection
+  Future<void> _handleMenuSelection(String value) async {
+    switch (value) {
+      case 'instructions':
+        _resetAndShowInstructions();
+        break;
+      case 'api_key':
+        _showApiKeyDialog();
+        break;
+      case 'privacy':
+        _openPrivacyPolicy();
+        break;
+      case 'contact':
+        _openContactEmail();
+        break;
+      case 'rate':
+        _requestAppReview();
+        break;
+      case 'share':
+        _shareApp();
+        break;
+      case 'dark_mode':
+        _showDarkModeDialog();
+        break;
+      case 'credits':
+        _showCreditsDialog();
+        break;
+      case 'version':
+        _showVersionDialog();
+        break;
+      case 'delete_data':
+        _showDeleteDataDialog();
+        break;
+    }
+  }
+
+  /// Open Privacy Policy in browser
+  Future<void> _openPrivacyPolicy() async {
+    final Uri url =
+        Uri.parse('https://doctorloveapp.github.io/chatscanner/privacy.html');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  /// Open email for contact
+  Future<void> _openContactEmail() async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: 'doctorloveapp@gmail.com',
+      queryParameters: {
+        'subject': 'Doctor Love App - Feedback',
+      },
+    );
+    if (await canLaunchUrl(emailUri)) {
+      await launchUrl(emailUri);
+    }
+  }
+
+  /// Request app review
+  Future<void> _requestAppReview() async {
+    final InAppReview inAppReview = InAppReview.instance;
+    if (await inAppReview.isAvailable()) {
+      await inAppReview.requestReview();
+    } else {
+      // Fallback: open Play Store page
+      final Uri url = Uri.parse(
+          'https://play.google.com/store/apps/details?id=com.doctorloveapp.chatscanner');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      }
+    }
+  }
+
+  /// Share app
+  Future<void> _shareApp() async {
+    await Share.share(
+      '💕 Prova Doctor Love - Analizza le tue chat e scopri se c\'è interesse!\n\nhttps://play.google.com/store/apps/details?id=com.doctorloveapp.chatscanner',
+      subject: 'Doctor Love App',
+    );
+  }
+
+  /// Show API Key dialog with input and save/remove functionality
+  void _showApiKeyDialog() async {
+    final hasKey = await UserPreferencesService.hasCustomApiKey();
+
+    if (!mounted) return;
+
+    final TextEditingController controller = TextEditingController(
+      text: hasKey ? '••••••••••••••••••••' : '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.key, color: Color(0xFFBA68C8)),
+              SizedBox(width: 8),
+              Flexible(child: Text('Google Gemini API Key')),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '🔐 La tua chiave viene salvata in modo sicuro sul dispositivo e NON viene mai condivisa con noi.\n',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                if (hasKey) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'API Key attiva! Stai usando analisi illimitate.',
+                            style: TextStyle(color: Colors.green, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ] else ...[
+                  const Text(
+                    'Vantaggi con la tua Google API Key:\n',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const Text('✓ Analisi illimitate'),
+                  const Text('✓ Nessun limite giornaliero'),
+                  const Text('✓ Modello Gemini 2.5 Pro'),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '📋 Come ottenere la tua API Key Google:',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '1. Vai su Google AI Studio\n'
+                          '2. Accedi con il tuo account Google\n'
+                          '3. Clicca "Get API Key" → "Create API Key"\n'
+                          '4. Copia la chiave e incollala qui sotto',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: () async {
+                            final url =
+                                Uri.parse('https://aistudio.google.com/apikey');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url,
+                                  mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          child: const Row(
+                            children: [
+                              Icon(Icons.open_in_new,
+                                  size: 16, color: Color(0xFFBA68C8)),
+                              SizedBox(width: 4),
+                              Text(
+                                'Apri Google AI Studio',
+                                style: TextStyle(
+                                  color: Color(0xFFBA68C8),
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                TextField(
+                  controller: controller,
+                  obscureText: hasKey,
+                  decoration: InputDecoration(
+                    labelText: hasKey
+                        ? 'Nuova API Key (opzionale)'
+                        : 'Inserisci API Key',
+                    hintText: 'AIzaSy...',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.vpn_key),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.paste),
+                      tooltip: 'Incolla',
+                      onPressed: () async {
+                        final data = await Clipboard.getData('text/plain');
+                        if (data?.text != null) {
+                          controller.text = data!.text!;
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            if (hasKey)
+              TextButton(
+                onPressed: () async {
+                  // Confirm removal
+                  final confirm = await showDialog<bool>(
+                    context: ctx,
+                    builder: (c) => AlertDialog(
+                      title: const Text('Rimuovere API Key?'),
+                      content: const Text(
+                        'Tornerai al piano gratuito con 5 analisi al giorno.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(c, false),
+                          child: const Text('Annulla'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(c, true),
+                          child: const Text('Rimuovi',
+                              style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    await UserPreferencesService.removeCustomApiKey();
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ API Key rimossa'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Rimuovi Key',
+                    style: TextStyle(color: Colors.red)),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annulla'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFBA68C8),
+              ),
+              onPressed: () async {
+                final newKey = controller.text.trim();
+                if (newKey.isEmpty || newKey.startsWith('••')) {
+                  Navigator.pop(ctx);
+                  return;
+                }
+
+                // Basic validation
+                if (!newKey.startsWith('AIzaSy') || newKey.length < 30) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          '❌ API Key non valida. Deve iniziare con "AIzaSy"'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                // Save the key
+                await UserPreferencesService.setCustomApiKey(newKey);
+
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          '✅ API Key salvata! Ora hai analisi illimitate 🎉'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                hasKey ? 'Aggiorna' : 'Salva',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show dark mode dialog with toggle switch
+  void _showDarkModeDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.dark_mode, color: Color(0xFFBA68C8)),
+              SizedBox(width: 8),
+              Text('Tema Scuro'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  themeService.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                  color: const Color(0xFFBA68C8),
+                ),
+                title: Text(
+                    themeService.isDarkMode ? 'Tema Scuro' : 'Tema Chiaro'),
+                subtitle: const Text('Tocca per cambiare'),
+                trailing: Switch(
+                  value: themeService.isDarkMode,
+                  activeColor: const Color(0xFFBA68C8),
+                  onChanged: (value) async {
+                    await themeService.toggleTheme();
+                    setDialogState(() {});
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Il tema viene salvato automaticamente.',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Chiudi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show credits dialog
+  void _showCreditsDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Color(0xFFBA68C8)),
+            SizedBox(width: 8),
+            Text('Crediti & Licenze'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Doctor Love',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const Text('Sviluppato da Sons of Art\n'),
+              const Text(
+                'Tecnologie utilizzate:',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const Text('• Flutter (Google)'),
+              const Text('• Google Gemini AI'),
+              const Text('• Groq Llama 4'),
+              const Text('• Firebase'),
+              const SizedBox(height: 16),
+              const Text(
+                'Open Source',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              InkWell(
+                onTap: () async {
+                  final url =
+                      Uri.parse('https://github.com/doctorloveapp/chatscanner');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: const Text(
+                  'github.com/doctorloveapp/chatscanner',
+                  style: TextStyle(
+                    color: Color(0xFFBA68C8),
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Chiudi'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show version dialog
+  Future<void> _showVersionDialog() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.system_update, color: Color(0xFFBA68C8)),
+            SizedBox(width: 8),
+            Text('Versione'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Versione: ${packageInfo.version}'),
+            Text('Build: ${packageInfo.buildNumber}'),
+            const SizedBox(height: 8),
+            const Text(
+              '✅ Sei alla versione più recente!',
+              style: TextStyle(color: Colors.green),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show delete data confirmation dialog
+  void _showDeleteDataDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.delete_forever, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Elimina Dati'),
+          ],
+        ),
+        content: const Text(
+          '⚠️ Questa azione eliminerà:\n\n'
+          '• Preferenze salvate\n'
+          '• API key personale (se inserita)\n'
+          '• Contatore analisi giornaliere\n\n'
+          'L\'app tornerà alle impostazioni di fabbrica.\n\n'
+          'Sei sicuro di voler procedere?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await UserPreferencesService.deleteAllData();
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ Tutti i dati sono stati eliminati'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'Elimina tutto',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -768,7 +1385,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       setState(() {
         _remainingAnalyses = 0;
         _error =
-            '⏰ Hai esaurito le 5 analisi giornaliere!\n\n🌙 Il contatore si resetterà a mezzanotte.\nTorna domani per altre 5 analisi gratuite! 💕';
+            '⏰ Hai esaurito le ${RemoteConfigService.dailyAnalysisLimit} analisi giornaliere!\n\n🌙 Il contatore si resetterà a mezzanotte.\nTorna domani per altre ${RemoteConfigService.dailyAnalysisLimit} analisi gratuite! 💕';
       });
       return;
     }
@@ -856,11 +1473,35 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           ),
         ),
         actions: [
-          IconButton(
-            icon:
-                Icon(Icons.help_outline, color: Colors.white.withOpacity(0.8)),
-            tooltip: 'Mostra istruzioni',
-            onPressed: _resetAndShowInstructions,
+          PopupMenuButton<String>(
+            icon: Icon(Icons.menu, color: Colors.white.withOpacity(0.9)),
+            tooltip: 'Menu',
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: _handleMenuSelection,
+            itemBuilder: (context) => [
+              _buildMenuItem('instructions', Icons.help_outline, 'Istruzioni'),
+              _buildMenuItem('api_key', Icons.key, 'Usa la tua API Key'),
+              const PopupMenuDivider(),
+              _buildMenuItem(
+                  'privacy', Icons.privacy_tip_outlined, 'Privacy Policy'),
+              _buildMenuItem('contact', Icons.email_outlined, 'Contattaci'),
+              _buildMenuItem('rate', Icons.star_outline, "Valuta l'app"),
+              _buildMenuItem('share', Icons.share_outlined, "Condividi l'app"),
+              const PopupMenuDivider(),
+              _buildMenuItem(
+                  'dark_mode', Icons.dark_mode_outlined, 'Tema Scuro'),
+              _buildMenuItem(
+                  'credits', Icons.info_outline, 'Crediti & Licenze'),
+              _buildMenuItem(
+                  'version', Icons.system_update_outlined, 'Versione'),
+              const PopupMenuDivider(),
+              _buildMenuItem(
+                  'delete_data', Icons.delete_forever_outlined, 'Elimina Dati',
+                  isDestructive: true),
+            ],
           ),
         ],
       ),
@@ -971,7 +1612,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                                       duration: 800.ms),
                               const SizedBox(width: 12),
                               Text(
-                                "$_remainingAnalyses/5",
+                                "$_remainingAnalyses/${RemoteConfigService.dailyAnalysisLimit}",
                                 style: GoogleFonts.orbitron(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -982,7 +1623,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _remainingAnalyses >= 5
+                            _remainingAnalyses >=
+                                    RemoteConfigService.dailyAnalysisLimit
                                 ? "Oggi sei al 100% 🔥"
                                 : _remainingAnalyses > 0
                                     ? "Analisi rimaste oggi"
@@ -1161,7 +1803,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   Column(
                     children: [
                       Text(
-                        "Analisi istantanee · 5 al giorno",
+                        "Analisi istantanee · ${RemoteConfigService.dailyAnalysisLimit} al giorno",
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           color: Colors.white.withOpacity(0.5),
@@ -1208,10 +1850,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             ),
           ],
         ),
-        content: const Text(
-          'Hai a disposizione 5 analisi gratuite ogni giorno.\n\n'
+        content: Text(
+          'Hai a disposizione ${RemoteConfigService.dailyAnalysisLimit} analisi gratuite ogni giorno.\n\n'
           'Il contatore si resetta automaticamente a mezzanotte.\n\n'
-          '💜 Viola = 4-5 rimaste\n'
+          '💜 Viola = 4+ rimaste\n'
           '🧡 Arancio = 1-3 rimaste\n'
           '❤️ Rosso = 0 rimaste',
         ),

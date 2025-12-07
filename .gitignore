@@ -65,6 +65,22 @@ app.*.map.json
 
 # User documents and sensitive data
 documenti/
+consigli.md
+
+App ghost.code-workspace
+
+test_hf_api.py
+test_groq_api.py
+test_groq_vision.py
+test_llama4.py
+diagnose.py
+list_groq_models.py
+test_groq_quick.py
+test_hf_vision.py
+
+test_output.txt
+models_output.txt
+groq_result.txt
 
 # Screenshots captured by app (local testing)
 screenshots/
@@ -77,3 +93,33 @@ gradle-wrapper.jar
 *.jks
 *.keystore
 key.properties
+
+# Firebase config (contains project IDs - optional to ignore)
+# google-services.json  # Uncomment if you want to ignore
+
+# Test output files
+groq_models.json
+
+# Local setup scripts (not needed in repo)
+configure_android_env.ps1
+install_android_sdk.ps1
+install_flutter.ps1
+
+# Flutter metadata
+.metadata
+
+# Coverage
+coverage/
+*.lcov
+
+# Generated files
+*.g.dart
+!lib/env/env.g.dart  # Already in .gitignore above
+
+# macOS
+*.dmg
+.DS_Store
+
+# Windows
+Thumbs.db
+*.exe

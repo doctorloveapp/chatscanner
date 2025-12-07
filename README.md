@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.1.8-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-3.5.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/platform-Android-green.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter" alt="Flutter">
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
@@ -30,8 +30,10 @@
 - 💬 **Phrase Rating** - Individual analysis of key messages
 - 🎯 **Next Move Suggestion** - AI-generated response recommendations
 - 🔄 **Smart Retry** - 3 attempts per model with exponential backoff
-- 📅 **Daily Rate Limit** - 5 analyses per day (resets at midnight)
+- 📅 **Daily Rate Limit** - 5 analyses per day (configurable via Firebase)
 - 🖼️ **Unlimited Screenshots** - Auto-merges images to bypass API limits
+- 🔑 **BYOK Mode** - Use your own Google Gemini API key for unlimited analyses
+- ⚙️ **Professional Menu** - Settings, privacy, share, credits and more
 
 ---
 

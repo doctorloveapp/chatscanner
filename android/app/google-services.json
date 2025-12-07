@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "480850714430",
+    "project_id": "doctor-love-9fa43",
+    "storage_bucket": "doctor-love-9fa43.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:480850714430:android:5307c16515a88d7492966f",
+        "android_client_info": {
+          "package_name": "com.doctorloveapp.chatscanner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQzwsyjo1Ze_p_zU9vEdD5WcijqhJTfTg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

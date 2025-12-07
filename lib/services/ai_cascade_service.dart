@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image/image.dart' as img;
 
 import '../env/env.dart';
+import 'remote_config_service.dart';
+import 'user_preferences_service.dart';
 
 /// Available models for debug selection
 /// When debugModeEnabled = false, this enum is ignored
@@ -39,7 +41,8 @@ extension DebugModelChoiceExtension on DebugModelChoice {
 /// Multi-tier AI cascade service for Doctor Love
 /// Priority: Gemini 2.5 Pro → Gemini 2.5 Flash → Groq Llama 4 Scout → Groq Llama 4 Maverick
 class AICascadeService {
-  static const int _maxAnalysesPerDay = 5;
+  // Daily limit now comes from Firebase Remote Config
+  static int get _maxAnalysesPerDay => RemoteConfigService.dailyAnalysisLimit;
   static const int _maxRetries = 3;
 
   // ============================================================
@@ -121,6 +124,82 @@ Regole ferree:
     await prefs.setInt('analysis_count', count + 1);
   }
 
+  /// BYOK: Call Gemini with user's own API key (no rate limit)
+  static Future<Map<String, dynamic>> _callWithUserApiKey(
+      List<Uint8List> imageBytesList) async {
+    _log('🔑 BYOK: Calling Gemini with user API key');
+
+    final userApiKey = await UserPreferencesService.getCustomApiKey();
+    if (userApiKey == null || userApiKey.isEmpty) {
+      throw Exception('User API key not found');
+    }
+
+    try {
+      // Use the best model with user's key
+      final model = GenerativeModel(
+        model: 'gemini-2.5-pro',
+        apiKey: userApiKey,
+        generationConfig: GenerationConfig(
+          responseMimeType: 'application/json',
+          maxOutputTokens: 8192,
+        ),
+      );
+
+      // Build content parts
+      final List<Part> parts = [TextPart(_doctorLovePrompt)];
+      for (int i = 0; i < imageBytesList.length; i++) {
+        parts.add(DataPart('image/jpeg', imageBytesList[i]));
+      }
+
+      _log(
+          '🔑 BYOK: Sending ${imageBytesList.length} images to Gemini 2.5 Pro');
+      final response = await model.generateContent([Content.multi(parts)]);
+      final text = response.text;
+
+      if (text == null || text.isEmpty) {
+        throw Exception('Empty response from Gemini');
+      }
+
+      _log('🔑 BYOK: Response received, parsing JSON...');
+
+      // Parse JSON response
+      String cleanedText = text;
+      if (cleanedText.startsWith('```json')) {
+        cleanedText = cleanedText.substring(7);
+      }
+      if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.substring(3);
+      }
+      if (cleanedText.endsWith('```')) {
+        cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+      }
+      cleanedText = cleanedText.trim();
+
+      final Map<String, dynamic> result = json.decode(cleanedText);
+
+      // Validate required fields
+      if (!result.containsKey('interesse') || !result.containsKey('titolo')) {
+        throw Exception('Invalid response format');
+      }
+
+      _log('🔑 BYOK: SUCCESS! User API key analysis complete');
+      return result;
+    } catch (e, stackTrace) {
+      _logError('BYOK Gemini', e, stackTrace);
+
+      // Provide user-friendly error
+      if (e.toString().toLowerCase().contains('api_key_invalid') ||
+          e.toString().toLowerCase().contains('invalid api key')) {
+        throw Exception('La tua API Key non è valida. Controlla e riprova.');
+      }
+      if (e.toString().toLowerCase().contains('quota')) {
+        throw Exception('Hai esaurito la quota della tua API Key.');
+      }
+
+      throw Exception('Errore con la tua API Key: $e');
+    }
+  }
+
   /// DEBUG: Call a specific model directly without fallback
   static Future<Map<String, dynamic>> _callSingleModel(
       List<Uint8List> imageBytesList, DebugModelChoice model) async {
@@ -164,6 +243,7 @@ Regole ferree:
 
   /// Main analysis method with 4-tier cascade
   /// In debug mode, can call a specific model instead
+  /// If user has custom API key, bypasses rate limit and cascade
   static Future<Map<String, dynamic>> analyzeImages(
       List<Uint8List> imageBytesList) async {
     _log('=== STARTING AI CASCADE ANALYSIS ===');
@@ -171,7 +251,14 @@ Regole ferree:
     _log(
         'Total bytes: ${imageBytesList.fold<int>(0, (sum, bytes) => sum + bytes.length)}');
 
-    // Check rate limit
+    // Check if user has their own API key (BYOK mode)
+    final hasCustomKey = await UserPreferencesService.hasCustomApiKey();
+    if (hasCustomKey) {
+      _log('🔑 BYOK MODE: User has custom API key - bypassing limits');
+      return await _callWithUserApiKey(imageBytesList);
+    }
+
+    // Check rate limit (only for default cascade)
     final remaining = await getRemainingAnalyses();
     _log('Rate limit check: $remaining analyses remaining');
     if (remaining <= 0) {
@@ -588,7 +675,7 @@ Regole ferree:
     final errorStr = error.toString().toLowerCase();
 
     if (errorStr.contains('rate_limit_exceeded')) {
-      return 'Hai raggiunto il limite di 5 analisi oggi. Riprova domani!';
+      return 'Hai raggiunto il limite di $_maxAnalysesPerDay analisi oggi. Riprova domani!';
     }
     if (errorStr.contains('all_models_failed')) {
       return 'Servizio temporaneamente sovraccarico, riprova tra 1 minuto';
