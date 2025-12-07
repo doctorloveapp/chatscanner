@@ -177,7 +177,7 @@ The overlay runs in an isolated Flutter VM, making MethodChannel communication i
 
 ```bash
 # Clone the repository
-git clone https://github.com/sonsofart/chatscanner.git
+git clone https://github.com/doctorloveapp/chatscanner.git
 cd chatscanner
 
 # Install dependencies
@@ -334,7 +334,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Sons of Art**
 
-- GitHub: [@sonsofart](https://github.com/sonsofart)
+- GitHub: [@doctorloveapp](https://github.com/doctorloveapp)
 
 ---
 
