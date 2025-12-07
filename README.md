@@ -25,12 +25,13 @@
 ### Key Features
 
 - 🔴 **Live Scanner Mode** - Floating overlay to capture screenshots from any app
-- 🤖 **Multi-AI Cascade** - Gemini 2.5 Pro → Llama 3.2 Vision → Qwen2-VL (automatic fallback)
+- 🤖 **Multi-AI Cascade** - Gemini 2.5 Pro → Gemini 2.5 Flash → Groq Llama 4 Scout → Groq Llama 4 Maverick
 - 📊 **Interest Score** - Get a 0-100 rating of conversation engagement
 - 💬 **Phrase Rating** - Individual analysis of key messages
 - 🎯 **Next Move Suggestion** - AI-generated response recommendations
 - 🔄 **Smart Retry** - 3 attempts per model with exponential backoff
-- 📅 **Daily Rate Limit** - 10 analyses per day (resets at midnight)
+- 📅 **Daily Rate Limit** - 5 analyses per day (resets at midnight)
+- 🖼️ **Unlimited Screenshots** - Auto-merges images to bypass API limits
 
 ---
 
@@ -42,15 +43,16 @@
 
 ---
 
-## 🤖 AI Cascade System (v3.1.5)
+## 🤖 AI Cascade System (v3.2.0)
 
-The app uses a 3-tier AI fallback system for maximum reliability:
+The app uses a **4-tier AI fallback system** for maximum reliability:
 
-| Priority | Model | Provider |
-|:--------:|-------|----------|
-| 1️⃣ | Gemini 2.5 Pro | Google AI |
-| 2️⃣ | Llama 3.2 11B Vision | HuggingFace |
-| 3️⃣ | Qwen2-VL-7B-Instruct | HuggingFace |
+| Priority | Model | Provider | Notes |
+|:--------:|-------|----------|-------|
+| 1️⃣ | Gemini 2.5 Pro | Google AI | Best quality, limited quota |
+| 2️⃣ | Gemini 2.5 Flash | Google AI | Faster, higher quota |
+| 3️⃣ | Llama 4 Scout 17B | Groq | Fast, free tier (500k tokens/day) |
+| 4️⃣ | Llama 4 Maverick 17B | Groq | High quality, free tier |
 
 **How it works:**
 
@@ -58,11 +60,17 @@ The app uses a 3-tier AI fallback system for maximum reliability:
 - If all 3 attempts fail, automatically falls back to the next model
 - Users never notice the switch - completely transparent
 
+**Image Merging:**
+
+- Groq supports max 5 images per request
+- If you upload 6+ screenshots, they're automatically stitched vertically
+- Example: 15 screenshots → 5 composite images (3 screenshots each)
+
 **Rate Limiting:**
 
-- Daily limit: 10 analyses (resets at midnight)
-- Visual counter in AppBar: ❤️ X/10
-- Color changes: 💜 Purple (4-10) → 🧡 Orange (1-3) → ❤️ Red (0)
+- Daily limit: **5 analyses** (resets at midnight)
+- Visual counter in AppBar: ❤️ X/5
+- Color changes: 💜 Purple (4-5) → 🧡 Orange (1-3) → ❤️ Red (0)
 
 **Android 14+ Optimization:**
 
@@ -218,8 +226,9 @@ The API key is securely embedded and obfuscated at build time.
 | `path_provider` | ^2.1.5 | File system access |
 | `permission_handler` | ^11.3.1 | Runtime permission management |
 | `envied` | ^0.5.4 | Secure API key management |
-| `http` | ^1.2.0 | HuggingFace API calls |
+| `http` | ^1.2.0 | Groq API calls |
 | `shared_preferences` | ^2.2.2 | Rate limiting storage |
+| `image` | ^4.2.0 | Image merging for Groq |
 
 ---
 

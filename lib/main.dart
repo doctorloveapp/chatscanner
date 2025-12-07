@@ -299,7 +299,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   Map<String, dynamic>? _analysisResult;
   String _loadingMessage = "Inizializzazione...";
   bool _dontShowInstructionAgain = false;
-  int _remainingAnalyses = 10; // Daily rate limit counter
+  int _remainingAnalyses = 5; // Daily rate limit counter
 
   final ImagePicker _picker = ImagePicker();
 
@@ -768,7 +768,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       setState(() {
         _remainingAnalyses = 0;
         _error =
-            '⏰ Hai esaurito le 10 analisi giornaliere!\n\n🌙 Il contatore si resetterà a mezzanotte.\nTorna domani per altre 10 analisi gratuite! 💕';
+            '⏰ Hai esaurito le 5 analisi giornaliere!\n\n🌙 Il contatore si resetterà a mezzanotte.\nTorna domani per altre 5 analisi gratuite! 💕';
       });
       return;
     }
@@ -822,86 +822,311 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("DOCTOR LOVE"),
-        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        titleTextStyle: GoogleFonts.orbitron(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: const Color(0xFFBA68C8), // Pastel Purple
+        centerTitle: true,
+        title: Text(
+          "DOCTOR LOVE",
+          style: GoogleFonts.orbitron(
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            shadows: [
+              // Pink outline effect using multiple shadows
+              Shadow(
+                  offset: const Offset(-1, -1),
+                  color: const Color(0xFFF06292),
+                  blurRadius: 0),
+              Shadow(
+                  offset: const Offset(1, -1),
+                  color: const Color(0xFFF06292),
+                  blurRadius: 0),
+              Shadow(
+                  offset: const Offset(-1, 1),
+                  color: const Color(0xFFF06292),
+                  blurRadius: 0),
+              Shadow(
+                  offset: const Offset(1, 1),
+                  color: const Color(0xFFF06292),
+                  blurRadius: 0),
+            ],
+          ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline, color: Color(0xFFBA68C8)),
+            icon:
+                Icon(Icons.help_outline, color: Colors.white.withOpacity(0.8)),
             tooltip: 'Mostra istruzioni',
             onPressed: _resetAndShowInstructions,
           ),
         ],
       ),
-      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // Main content
+          // Background gradient + hearts pattern
           Container(
             width: double.infinity,
             height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFF3E5F5), // Lavender
                   Colors.white,
-                  Color(0xFFFCE4EC), // Light Pink
+                  Color(0xFFFFD1DC), // Pink light
+                  Color(0xFFE040FB), // Neon pink/violet
                 ],
+                stops: [0.0, 0.15, 1.0],
               ),
             ),
+          ),
+          // Hearts pattern overlay
+          Opacity(
+            opacity: 0.08,
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: const AssetImage('assets/icon.png'),
+                  repeat: ImageRepeat.repeat,
+                  scale: 8,
+                  colorFilter: ColorFilter.mode(
+                    Colors.white.withOpacity(0.3),
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Main scrollable content
+          SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 100, 20, 80),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
               child: Column(
                 children: [
+                  // Subtitle
+                  Text(
+                    "Scopri in 3 secondi se ti desidera davvero 💜",
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Pulsing heart counter
+                  GestureDetector(
+                    onTap: _showCounterExplanation,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withOpacity(0.2),
+                            Colors.white.withOpacity(0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFE040FB).withOpacity(0.3),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _remainingAnalyses > 0
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                size: 32,
+                                color: _remainingAnalyses > 3
+                                    ? Colors.white
+                                    : _remainingAnalyses > 0
+                                        ? const Color(0xFFFFAB40)
+                                        : const Color(0xFFFF5252),
+                              )
+                                  .animate(
+                                      onPlay: (c) => c.repeat(reverse: true))
+                                  .scale(
+                                      begin: const Offset(1, 1),
+                                      end: const Offset(1.2, 1.2),
+                                      duration: 800.ms),
+                              const SizedBox(width: 12),
+                              Text(
+                                "$_remainingAnalyses/5",
+                                style: GoogleFonts.orbitron(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _remainingAnalyses >= 5
+                                ? "Oggi sei al 100% 🔥"
+                                : _remainingAnalyses > 0
+                                    ? "Analisi rimaste oggi"
+                                    : "Torna domani! 🌙",
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 12,
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Error message if present
                   if (_error != null)
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(16),
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        border: Border.all(
-                            color: const Color(0xFFE57373)), // Pastel Red
-                        borderRadius: BorderRadius.circular(12),
-                        color: const Color(0xFFFFEBEE),
+                        color: Colors.red.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.red.withOpacity(0.5)),
                       ),
                       child: Text(
                         _error!,
-                        style: const TextStyle(color: Color(0xFFC62828)),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
                         textAlign: TextAlign.center,
                       ),
                     ),
+
                   if (_analysisResult == null && !_isLoading) ...[
-                    const SizedBox(height: 20),
-
-                    // Live Mode Button
-                    ElevatedButton.icon(
-                      onPressed: _startLiveMode,
-                      icon: const Icon(Icons.emergency_recording,
-                          color: Colors.white),
-                      label: const Text("ATTIVA SCANNER LIVE 👻",
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF06292), // Pink
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 15),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30)),
+                    // Live Scanner Button with neon glow
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(35),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFE040FB).withOpacity(0.5),
+                            blurRadius: 25,
+                            spreadRadius: 3,
+                          ),
+                        ],
                       ),
-                    ).animate().shimmer(duration: 3.seconds),
+                      child: ElevatedButton(
+                        onPressed: _startLiveMode,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE040FB),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 28, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(35),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.bolt,
+                                color: Colors.white, size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Usa scanner live",
+                              style: GoogleFonts.orbitron(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text("👻", style: TextStyle(fontSize: 20)),
+                          ],
+                        ),
+                      ),
+                    ).animate().shimmer(
+                        duration: 2.seconds,
+                        color: Colors.white.withOpacity(0.2)),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 40),
 
+                    // Upload area
                     if (_images.isEmpty)
-                      _buildUploadButton()
+                      GestureDetector(
+                        onTap: _pickImages,
+                        child: Container(
+                          width: MediaQuery.of(context).size.width * 0.6,
+                          height: MediaQuery.of(context).size.width * 0.6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.white.withOpacity(0.2),
+                                Colors.white.withOpacity(0.05),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.4),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFE040FB).withOpacity(0.3),
+                                blurRadius: 30,
+                                spreadRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.cloud_upload_outlined,
+                                size: 60,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                "upload chat",
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white.withOpacity(0.9),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Icon(
+                                Icons.arrow_downward,
+                                size: 24,
+                                color: Colors.white.withOpacity(0.6),
+                              ),
+                            ],
+                          ),
+                        ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(
+                            begin: 0,
+                            end: -10,
+                            duration: 2.seconds,
+                            curve: Curves.easeInOut),
+                      )
                     else
                       _buildImagePreviewList(),
 
@@ -911,10 +1136,12 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     if (_images.isNotEmpty)
                       TextButton.icon(
                         onPressed: _clearAllScreenshots,
-                        icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                        label: const Text(
-                          "Cancella tutti gli screenshot",
-                          style: TextStyle(color: Colors.red),
+                        icon: Icon(Icons.delete_sweep,
+                            color: Colors.white.withOpacity(0.7)),
+                        label: Text(
+                          "Cancella tutti",
+                          style:
+                              TextStyle(color: Colors.white.withOpacity(0.7)),
                         ),
                       ),
 
@@ -927,68 +1154,37 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   ] else if (_analysisResult != null) ...[
                     _buildResultsView(),
                   ],
+
+                  const SizedBox(height: 10),
+
+                  // Footer
+                  Column(
+                    children: [
+                      Text(
+                        "Analisi istantanee · 5 al giorno",
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "100% anonimo",
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-          ), // Closes Container
-          // Floating counter positioned top-right, below AppBar
-          Positioned(
-            right: 16,
-            top: 90,
-            child: GestureDetector(
-              onTap: _showCounterExplanation,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _remainingAnalyses > 3
-                      ? const Color(0xFFE1BEE7).withOpacity(0.95)
-                      : _remainingAnalyses > 0
-                          ? const Color(0xFFFFE0B2).withOpacity(0.95)
-                          : const Color(0xFFFFCDD2).withOpacity(0.95),
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _remainingAnalyses > 0
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      size: 18,
-                      color: _remainingAnalyses > 3
-                          ? const Color(0xFF7B1FA2)
-                          : _remainingAnalyses > 0
-                              ? const Color(0xFFE65100)
-                              : const Color(0xFFC62828),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$_remainingAnalyses/10',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: _remainingAnalyses > 3
-                            ? const Color(0xFF7B1FA2)
-                            : _remainingAnalyses > 0
-                                ? const Color(0xFFE65100)
-                                : const Color(0xFFC62828),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ),
-        ], // Closes Stack children
-      ), // Closes Stack
+        ],
+      ),
     );
   }
 
@@ -996,17 +1192,26 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.favorite, color: Color(0xFFBA68C8)),
-            SizedBox(width: 8),
-            Text('Analisi Giornaliere'),
+            const Icon(Icons.favorite, color: Color(0xFFBA68C8)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Analisi Giornaliere',
+                style: GoogleFonts.orbitron(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         content: const Text(
-          'Hai a disposizione 10 analisi gratuite ogni giorno.\n\n'
+          'Hai a disposizione 5 analisi gratuite ogni giorno.\n\n'
           'Il contatore si resetta automaticamente a mezzanotte.\n\n'
-          '💜 Viola = 4-10 rimaste\n'
+          '💜 Viola = 4-5 rimaste\n'
           '🧡 Arancio = 1-3 rimaste\n'
           '❤️ Rosso = 0 rimaste',
         ),
@@ -1016,68 +1221,6 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             child: const Text('Ho capito!'),
           ),
         ],
-      ),
-    );
-  }
-
-  // ... (Rest of the widgets remain the same) ...
-  Widget _buildUploadButton() {
-    return GestureDetector(
-      onTap: _pickImages,
-      child: Animate(
-        onPlay: (controller) => controller.repeat(reverse: true),
-        effects: [
-          BoxShadowEffect(
-            begin: BoxShadow(
-              color: const Color(0xFFBA68C8).withValues(alpha: 0.2),
-              blurRadius: 10,
-              spreadRadius: 0,
-            ),
-            end: BoxShadow(
-              color: const Color(0xFFBA68C8).withValues(alpha: 0.4),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-            duration: 1500.ms,
-          ),
-          ScaleEffect(
-            begin: const Offset(1, 1),
-            end: const Offset(1.05, 1.05),
-            duration: 1500.ms,
-          ),
-        ],
-        child: Container(
-          width: 200,
-          height: 200,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFBA68C8), width: 4),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFBA68C8).withValues(alpha: 0.2),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.upload_file, size: 50, color: Color(0xFFBA68C8)),
-              const SizedBox(height: 10),
-              Text(
-                "UPLOAD\nCHAT",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.orbitron(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFFBA68C8),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1167,33 +1310,88 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         const SizedBox(height: 10),
         Text(
           "${_images.length} SCREENSHOT${_images.length > 1 ? 'S' : ''}",
-          style: GoogleFonts.orbitron(color: Colors.grey),
+          style: GoogleFonts.orbitron(color: Colors.white),
         ),
       ],
     );
   }
 
   Widget _buildAnalyzeButton() {
-    return ElevatedButton(
-      onPressed: _analyzeImages,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFBA68C8), // Pastel Purple
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        elevation: 5,
-        shadowColor: const Color(0xFFBA68C8).withValues(alpha: 0.4),
-      ),
-      child: Text(
-        "ANALIZZA ORA",
-        style: GoogleFonts.orbitron(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2,
-        ),
-      ),
-    ).animate().shimmer(
-        duration: 2.seconds, color: Colors.white.withValues(alpha: 0.5));
+    return Column(
+      children: [
+        // DEBUG MODE: Model selector dropdown
+        if (AICascadeService.debugModeEnabled) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  '🔧 DEBUG MODE',
+                  style: GoogleFonts.orbitron(
+                    fontSize: 10,
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButton<DebugModelChoice>(
+                  value: AICascadeService.selectedModel,
+                  dropdownColor: const Color(0xFF2D2D2D),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                  underline: Container(),
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.orange),
+                  items: DebugModelChoice.values.map((model) {
+                    return DropdownMenuItem<DebugModelChoice>(
+                      value: model,
+                      child: Text(model.displayName),
+                    );
+                  }).toList(),
+                  onChanged: (model) {
+                    if (model != null) {
+                      setState(() {
+                        AICascadeService.selectedModel = model;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Main analyze button
+        ElevatedButton(
+          onPressed: _analyzeImages,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFBA68C8), // Pastel Purple
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            elevation: 5,
+            shadowColor: const Color(0xFFBA68C8).withValues(alpha: 0.4),
+          ),
+          child: Text(
+            "ANALIZZA ORA",
+            style: GoogleFonts.orbitron(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
+            ),
+          ),
+        ).animate().shimmer(
+            duration: 2.seconds, color: Colors.white.withValues(alpha: 0.5)),
+      ],
+    );
   }
 
   Widget _buildLoadingView() {
@@ -1210,12 +1408,12 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: const Color(0xFFBA68C8).withValues(alpha: 0.5),
+                color: Colors.white.withValues(alpha: 0.7),
                 width: 4,
               ),
             ),
             child: const Center(
-              child: Icon(Icons.radar, size: 50, color: Color(0xFFBA68C8)),
+              child: Icon(Icons.radar, size: 50, color: Colors.white),
             ),
           ),
         ),
@@ -1224,13 +1422,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           _loadingMessage,
           style: GoogleFonts.jetBrainsMono(
             fontSize: 16,
-            color: const Color(0xFFBA68C8),
+            color: Colors.white,
           ),
           textAlign: TextAlign.center,
-        )
-            .animate()
-            .fadeIn()
-            .shimmer(duration: 2.seconds, color: const Color(0xFFBA68C8)),
+        ).animate().fadeIn().shimmer(
+            duration: 2.seconds, color: Colors.white.withValues(alpha: 0.5)),
       ],
     );
   }
@@ -1295,7 +1491,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         const SizedBox(height: 30),
 
         // Analysis
-        _buildSectionTitle("VERDETTO", color),
+        _buildSectionTitle("VERDETTO", Colors.white),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -1323,7 +1519,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
         // Line Ratings
         if (_analysisResult!['line_rating'] != null) ...[
-          _buildSectionTitle("ANALISI FRASI", const Color(0xFF4DD0E1)), // Cyan
+          _buildSectionTitle("ANALISI FRASI", Colors.white),
           ...(_analysisResult!['line_rating'] as List).map((item) {
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -1375,7 +1571,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         ],
 
         // Next Move
-        _buildSectionTitle("PROSSIMA MOSSA", const Color(0xFFFFB74D)), // Orange
+        _buildSectionTitle("PROSSIMA MOSSA", Colors.white),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -1422,11 +1618,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         // Add more screenshots button - now shows options
         OutlinedButton.icon(
           onPressed: _showAddScreenshotsOptions,
-          icon: const Icon(Icons.add_photo_alternate, color: Color(0xFFBA68C8)),
+          icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
           label: const Text("AGGIUNGI ALTRI SCREEN",
-              style: TextStyle(color: Color(0xFFBA68C8))),
+              style: TextStyle(color: Colors.white)),
           style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: Color(0xFFBA68C8)),
+            side: const BorderSide(color: Colors.white),
             padding: const EdgeInsets.symmetric(vertical: 15),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1441,7 +1637,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               await _clearAllScreenshots(showMessage: false);
             },
             child: const Text("ANALIZZA UN'ALTRA CHAT",
-                style: TextStyle(color: Colors.grey)),
+                style: TextStyle(color: Colors.white)),
           ),
         ),
         const SizedBox(height: 20),

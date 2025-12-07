@@ -1,0 +1,10 @@
+Testing Llama 4 Scout
+============================================================
+
+TEXT TEST - Status: 200
+Response: {"id":"chatcmpl-d87fab38-73c3-4304-a39c-5ae49bbd4a65","object":"chat.completion","created":1765065337,"model":"meta-llama/llama-4-scout-17b-16e-instruct","choices":[{"index":0,"message":{"role":"assistant","content":"Ciao!"},"logprobs":null,"finish_reason":"stop"}],"usage":{"queue_time":0.088010666,"prompt_tokens":13,"prompt_time":0.000125038,"completion_tokens":4,"completion_time":0.009292582,"total_tokens":17,"total_time":0.00941762},"usage_breakdown":null,"system_fingerprint":"fp_79da0e0073","x_groq":{"id":"req_01kbv1fa46f9y865rwtw4eqzw8","seed":175344421},"service_tier":"on_demand"}
+
+
+VISION TEST - Status: 400
+Response: {"error":{"message":"failed to retrieve media: received status code: 403","type":"invalid_request_error"}}
+

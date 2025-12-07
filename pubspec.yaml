@@ -19,6 +19,7 @@ dependencies:
   envied: ^0.5.4
   http: ^1.2.0
   shared_preferences: ^2.2.2
+  image: ^4.2.0
   device_screenshot:
     path: packages/device_screenshot
   flutter_markdown: ^0.6.19

@@ -9,4 +9,7 @@ abstract class Env {
 
   @EnviedField(varName: 'HF_TOKEN')
   static const String hfToken = _Env.hfToken;
+
+  @EnviedField(varName: 'GROQ_API_KEY')
+  static const String groqApiKey = _Env.groqApiKey;
 }
