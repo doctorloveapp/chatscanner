@@ -18,6 +18,7 @@ import 'services/ai_cascade_service.dart';
 import 'services/remote_config_service.dart';
 import 'services/user_preferences_service.dart';
 import 'services/theme_service.dart';
+import 'services/translation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +28,9 @@ void main() async {
 
   // Initialize Remote Config (for dynamic daily limit)
   await RemoteConfigService.initialize();
+
+  // Initialize Translation Service
+  await TranslationService().initialize();
 
   // Initialize Theme Service
   await themeService.initialize();
@@ -153,8 +157,9 @@ class _ScannerOverlayWidgetState extends State<ScannerOverlayWidget> {
       } catch (_) {}
 
       // Write request file to trigger capture
-      await requestFile
-          .writeAsString('capture_${DateTime.now().millisecondsSinceEpoch}');
+      await requestFile.writeAsString(
+        'capture_${DateTime.now().millisecondsSinceEpoch}',
+      );
       debugPrint("Overlay: Request file written");
 
       // Simple polling with for loop
@@ -196,7 +201,8 @@ class _ScannerOverlayWidgetState extends State<ScannerOverlayWidget> {
 
     _isCapturing = false;
     debugPrint(
-        "Overlay: Capture complete, ready for next tap. Total: $_captureCount");
+      "Overlay: Capture complete, ready for next tap. Total: $_captureCount",
+    );
   }
 
   @override
@@ -227,18 +233,12 @@ class _ScannerOverlayWidgetState extends State<ScannerOverlayWidget> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
-              border: Border.all(
-                color: const Color(0xFFBA68C8),
-                width: 3,
-              ),
+              border: Border.all(color: const Color(0xFFBA68C8), width: 3),
             ),
             child: Stack(
               alignment: Alignment.center,
               children: [
-                const Text(
-                  "👻",
-                  style: TextStyle(fontSize: emojiSize),
-                ),
+                const Text("👻", style: TextStyle(fontSize: emojiSize)),
                 // Badge showing capture count
                 if (_captureCount > 0)
                   Positioned(
@@ -282,11 +282,15 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     themeService.addListener(_onThemeChanged);
+    TranslationService().addListener(
+      _onThemeChanged,
+    ); // Rebuild on language change too
   }
 
   @override
   void dispose() {
     themeService.removeListener(_onThemeChanged);
+    TranslationService().removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -305,9 +309,9 @@ class _MyAppState extends State<MyApp> {
           surface: Colors.white,
           onSurface: Color(0xFF37474F), // Dark Grey Text
         ),
-        textTheme: GoogleFonts.jetBrainsMonoTextTheme(
-          ThemeData.light().textTheme,
-        ).apply(
+        textTheme:
+            GoogleFonts.jetBrainsMonoTextTheme(ThemeData.light().textTheme)
+                .apply(
           bodyColor: const Color(0xFF37474F),
           displayColor: const Color(0xFF37474F),
         ),
@@ -327,17 +331,14 @@ class _MyAppState extends State<MyApp> {
         ),
         textTheme: GoogleFonts.jetBrainsMonoTextTheme(
           ThemeData.dark().textTheme,
-        ).apply(
-          bodyColor: Colors.white,
-          displayColor: Colors.white,
-        ),
+        ).apply(bodyColor: Colors.white, displayColor: Colors.white),
         useMaterial3: true,
       );
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Doctor Love',
+      title: TranslationService().tr('app_title'),
       debugShowCheckedModeBanner: false,
       theme: _lightTheme,
       darkTheme: _darkTheme,
@@ -363,7 +364,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   String? _error;
   Map<String, dynamic>? _analysisResult;
   String _loadingMessage = "Inizializzazione...";
-  bool _dontShowInstructionAgain = false;
+
+  static bool _sessionInstructionsShown =
+      false; // Static flag for session strictness
   int _remainingAnalyses =
       RemoteConfigService.dailyAnalysisLimit; // Daily rate limit counter
 
@@ -389,9 +392,27 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     _loadInstructionPreference();
     // Load remaining analyses counter
     _loadRemainingAnalyses();
+
+    // Listen to language changes
+    TranslationService().addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _loadRemainingAnalyses() async {
+    // Check custom key first
+    final hasKey = await UserPreferencesService.hasCustomApiKey();
+    final isEnabled = await UserPreferencesService.isCustomApiKeyEnabled();
+
+    if (hasKey && isEnabled) {
+      if (mounted) {
+        setState(() {
+          _remainingAnalyses = 999; // Code for unlimited
+        });
+      }
+      return;
+    }
+
     final remaining = await AICascadeService.getRemainingAnalyses();
     if (mounted) {
       setState(() {
@@ -406,10 +427,12 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       if (extDir == null) return;
       final prefFile = File('${extDir.path}/dont_show_instructions.txt');
       if (await prefFile.exists()) {
-        _dontShowInstructionAgain = true;
+        // Preference loaded: do not show instructions
       } else {
         // First launch - show instructions automatically
-        if (mounted) {
+        // STRICT CHECK: Only if not already shown this session
+        if (!_sessionInstructionsShown && mounted) {
+          _sessionInstructionsShown = true;
           // Delay slightly to ensure UI is ready
           await Future.delayed(const Duration(milliseconds: 500));
           if (mounted) {
@@ -428,7 +451,6 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       if (extDir == null) return;
       final prefFile = File('${extDir.path}/dont_show_instructions.txt');
       await prefFile.writeAsString('true');
-      _dontShowInstructionAgain = true;
     } catch (e) {
       debugPrint("Error saving instruction preference: $e");
     }
@@ -443,7 +465,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           await prefFile.delete();
         }
       }
-      _dontShowInstructionAgain = false;
+      // Preference reset
     } catch (e) {
       debugPrint("Error resetting instruction preference: $e");
     }
@@ -455,20 +477,20 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         context: context,
         builder: (ctx) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: const Text("📱 Istruzioni"),
+            title: Text(TranslationService().tr('dialog_instructions_title')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "COME FUNZIONA\n\n"
-                  "1. Premi 'Attiva Scanner Live'\n"
-                  "2. Concedi il permesso di cattura schermo\n"
-                  "3. Apri la chat da analizzare\n\n"
-                  "COME USARE L'ICONA 👻\n\n"
-                  "• Tap singolo → Cattura screenshot\n"
-                  "• Doppio tap → Torna all'app\n\n"
-                  "Trascina l'icona dove preferisci!",
+                Text(
+                  "${TranslationService().tr('dialog_instructions_how_works')}\n\n"
+                  "${TranslationService().tr('dialog_instructions_step_1')}\n"
+                  "${TranslationService().tr('dialog_instructions_step_2')}\n"
+                  "${TranslationService().tr('dialog_instructions_step_3')}\n\n"
+                  "${TranslationService().tr('dialog_instructions_icon_usage')}\n\n"
+                  "${TranslationService().tr('dialog_instructions_tap_single')}\n"
+                  "${TranslationService().tr('dialog_instructions_tap_double')}\n\n"
+                  "${TranslationService().tr('dialog_instructions_drag')}",
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -478,7 +500,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                       onChanged: (v) =>
                           setDialogState(() => dontShowAgain = v ?? false),
                     ),
-                    const Text("Non mostrare più"),
+                    Text(
+                      TranslationService().tr('dialog_instructions_dont_show'),
+                    ),
                   ],
                 ),
               ],
@@ -493,8 +517,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     Navigator.pop(ctx);
                   }
                 },
-                child: const Text("HO CAPITO",
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  TranslationService().tr('btn_understood'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -560,6 +586,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       case 'dark_mode':
         _showDarkModeDialog();
         break;
+      case 'language':
+        _showLanguageDialog();
+        break;
       case 'credits':
         _showCreditsDialog();
         break;
@@ -574,8 +603,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
   /// Open Privacy Policy in browser
   Future<void> _openPrivacyPolicy() async {
-    final Uri url =
-        Uri.parse('https://doctorloveapp.github.io/chatscanner/privacy.html');
+    final Uri url = Uri.parse(
+      'https://doctorloveapp.github.io/chatscanner/privacy.html',
+    );
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -586,9 +616,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: 'doctorloveapp@gmail.com',
-      queryParameters: {
-        'subject': 'Doctor Love App - Feedback',
-      },
+      queryParameters: {'subject': 'Doctor Love App - Feedback'},
     );
     if (await canLaunchUrl(emailUri)) {
       await launchUrl(emailUri);
@@ -603,7 +631,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     } else {
       // Fallback: open Play Store page
       final Uri url = Uri.parse(
-          'https://play.google.com/store/apps/details?id=com.doctorloveapp.chatscanner');
+        'https://play.google.com/store/apps/details?id=com.doctorloveapp.chatscanner',
+      );
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       }
@@ -632,11 +661,13 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.key, color: Color(0xFFBA68C8)),
-              SizedBox(width: 8),
-              Flexible(child: Text('Google Gemini API Key')),
+              const Icon(Icons.key, color: Color(0xFFBA68C8)),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(TranslationService().tr('dialog_api_title')),
+              ),
             ],
           ),
           content: SingleChildScrollView(
@@ -644,7 +675,13 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // API KEY INPUT FIELD FIRST
+                Text(TranslationService().tr('dialog_api_desc_1')),
+                const SizedBox(height: 12),
+                Text(
+                  TranslationService().tr('dialog_api_desc_2'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: controller,
                   obscureText: hasKey,
@@ -652,7 +689,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     labelText: hasKey
                         ? 'Nuova API Key (opzionale)'
                         : 'Inserisci API Key',
-                    hintText: 'AIzaSy...',
+                    hintText: TranslationService().tr('dialog_api_hint'),
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.vpn_key),
                     suffixIcon: IconButton(
@@ -668,6 +705,45 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   ),
                 ),
                 const SizedBox(height: 16),
+                // TOGGLE SWITCH FOR CUSTOM API KEY
+                if (hasKey)
+                  FutureBuilder<bool>(
+                    future: UserPreferencesService.isCustomApiKeyEnabled(),
+                    builder: (context, snapshot) {
+                      final isEnabled = snapshot.data ?? true;
+                      return SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text(
+                          'Usa questa API Key',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          isEnabled ? 'Attiva' : 'Disattivata (Usa default)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isEnabled ? Colors.green : Colors.grey,
+                          ),
+                        ),
+                        value: isEnabled,
+                        activeThumbColor: const Color(0xFFBA68C8),
+                        onChanged: (bool value) async {
+                          await UserPreferencesService.setCustomApiKeyEnabled(
+                            value,
+                          );
+                          setDialogState(() {}); // Update dialog
+                          if (mounted) {
+                            _loadRemainingAnalyses(); // Update main UI
+                            setState(() {}); // Rebuild main
+                          }
+                        },
+                      );
+                    },
+                  ),
+
+                const SizedBox(height: 16),
                 // SECURITY NOTE
                 const Text(
                   '🔐 La tua chiave viene salvata in modo sicuro sul dispositivo e NON viene mai condivisa con noi.',
@@ -679,9 +755,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      border: Border.all(
+                        color: Colors.green.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: const Row(
                       children: [
@@ -702,19 +780,27 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                   const SizedBox(height: 4),
-                  const Text('✓ Analisi illimitate',
-                      style: TextStyle(fontSize: 12)),
-                  const Text('✓ Nessun limite giornaliero',
-                      style: TextStyle(fontSize: 12)),
-                  const Text('✓ Modello Gemini 2.5 Pro',
-                      style: TextStyle(fontSize: 12)),
+                  const Text(
+                    '✓ Analisi illimitate',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  const Text(
+                    '✓ Nessun limite giornaliero',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  const Text(
+                    '✓ Modello Gemini 2.5 Pro',
+                    style: TextStyle(fontSize: 12),
+                  ),
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      border: Border.all(
+                        color: Colors.blue.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,7 +808,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                         const Text(
                           '📋 Come ottenere la tua API Key:',
                           style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 12),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         const Text(
@@ -735,18 +823,24 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                         const SizedBox(height: 6),
                         InkWell(
                           onTap: () async {
-                            final url =
-                                Uri.parse('https://aistudio.google.com/apikey');
+                            final url = Uri.parse(
+                              'https://aistudio.google.com/apikey',
+                            );
                             if (await canLaunchUrl(url)) {
-                              await launchUrl(url,
-                                  mode: LaunchMode.externalApplication);
+                              await launchUrl(
+                                url,
+                                mode: LaunchMode.externalApplication,
+                              );
                             }
                           },
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.open_in_new,
-                                  size: 14, color: Color(0xFFBA68C8)),
+                              Icon(
+                                Icons.open_in_new,
+                                size: 14,
+                                color: Color(0xFFBA68C8),
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 'Apri Google AI Studio',
@@ -786,8 +880,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(c, true),
-                          child: const Text('Rimuovi',
-                              style: TextStyle(color: Colors.red)),
+                          child: const Text(
+                            'Rimuovi',
+                            style: TextStyle(color: Colors.red),
+                          ),
                         ),
                       ],
                     ),
@@ -806,12 +902,14 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     }
                   }
                 },
-                child: const Text('Rimuovi Key',
-                    style: TextStyle(color: Colors.red)),
+                child: const Text(
+                  'Rimuovi Key',
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Annulla'),
+              child: Text(TranslationService().tr('btn_cancel')),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -829,7 +927,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                          '❌ API Key non valida. Deve iniziare con "AIzaSy"'),
+                        '❌ API Key non valida. Deve iniziare con "AIzaSy"',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -844,7 +943,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                          '✅ API Key salvata! Ora hai analisi illimitate 🎉'),
+                        '✅ API Key salvata! Ora hai analisi illimitate 🎉',
+                      ),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -884,11 +984,12 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   color: const Color(0xFFBA68C8),
                 ),
                 title: Text(
-                    themeService.isDarkMode ? 'Tema Scuro' : 'Tema Chiaro'),
+                  themeService.isDarkMode ? 'Tema Scuro' : 'Tema Chiaro',
+                ),
                 subtitle: const Text('Tocca per cambiare'),
                 trailing: Switch(
                   value: themeService.isDarkMode,
-                  activeColor: const Color(0xFFBA68C8),
+                  activeThumbColor: const Color(0xFFBA68C8),
                   onChanged: (value) async {
                     await themeService.toggleTheme();
                     setDialogState(() {});
@@ -918,11 +1019,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.info_outline, color: Color(0xFFBA68C8)),
-            SizedBox(width: 8),
-            Flexible(child: Text('Crediti & Licenze')),
+            const Icon(Icons.info_outline, color: Color(0xFFBA68C8)),
+            const SizedBox(width: 8),
+            Flexible(child: Text(TranslationService().tr('menu_credits'))),
           ],
         ),
         content: SingleChildScrollView(
@@ -934,10 +1035,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                 'Doctor Love',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              const Text('Sviluppato da Doctor Love Team\n'),
-              const Text(
-                'Tecnologie utilizzate:',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              Text("${TranslationService().tr('credits_developed_by')}\n"),
+              Text(
+                TranslationService().tr('credits_tech_used'),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               const Text('• Flutter (Google)'),
               const Text('• Google Gemini AI'),
@@ -950,8 +1051,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               ),
               InkWell(
                 onTap: () async {
-                  final url =
-                      Uri.parse('https://github.com/doctorloveapp/chatscanner');
+                  final url = Uri.parse(
+                    'https://github.com/doctorloveapp/chatscanner',
+                  );
                   if (await canLaunchUrl(url)) {
                     await launchUrl(url, mode: LaunchMode.externalApplication);
                   }
@@ -970,7 +1072,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Chiudi'),
+            child: Text(TranslationService().tr('btn_close')),
           ),
         ],
       ),
@@ -1015,6 +1117,51 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     );
   }
 
+  /// Show language selection dialog
+  void _showLanguageDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.language, color: Color(0xFFBA68C8)),
+            const SizedBox(width: 8),
+            Text(TranslationService().tr('menu_language')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Text("🇮🇹", style: TextStyle(fontSize: 24)),
+              title: const Text("Italiano"),
+              trailing: TranslationService().currentLanguage == 'it'
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+              onTap: () {
+                TranslationService().setLanguage('it');
+                Navigator.pop(ctx);
+                setState(() {}); // Rebuild UI
+              },
+            ),
+            ListTile(
+              leading: const Text("🇺🇸", style: TextStyle(fontSize: 24)),
+              title: const Text("English"),
+              trailing: TranslationService().currentLanguage == 'en'
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+              onTap: () {
+                TranslationService().setLanguage('en');
+                Navigator.pop(ctx);
+                setState(() {}); // Rebuild UI
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Show delete data confirmation dialog
   void _showDeleteDataDialog() {
     showDialog(
@@ -1027,23 +1174,19 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             Text('Elimina Dati'),
           ],
         ),
-        content: const Text(
-          '⚠️ Questa azione eliminerà:\n\n'
-          '• Preferenze salvate\n'
-          '• API key personale (se inserita)\n\n'
-          'L\'app tornerà alle impostazioni di fabbrica.\n\n'
-          'Sei sicuro di voler procedere?',
-        ),
+        content: Text(TranslationService().tr('dialog_delete_content')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annulla'),
+            child: Text(TranslationService().tr('btn_cancel')),
           ),
           TextButton(
             onPressed: () async {
               await UserPreferencesService.deleteAllData();
               if (ctx.mounted) {
                 Navigator.pop(ctx);
+              }
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('✅ Tutti i dati sono stati eliminati'),
@@ -1052,9 +1195,12 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                 );
               }
             },
-            child: const Text(
-              'Elimina tutto',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            child: Text(
+              TranslationService().tr('btn_delete_all'),
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -1119,8 +1265,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content:
-                  Text("📸 $newCount nuovi screenshot pronti per l'analisi!"),
+              content: Text(
+                "📸 $newCount nuovi screenshot pronti per l'analisi!",
+              ),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
             ),
@@ -1150,8 +1297,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       }
       // Create reset file to signal overlay to reset
       final resetFile = File('${commDir.path}/reset_counter');
-      await resetFile
-          .writeAsString('reset_${DateTime.now().millisecondsSinceEpoch}');
+      await resetFile.writeAsString(
+        'reset_${DateTime.now().millisecondsSinceEpoch}',
+      );
       debugPrint("Reset counter file created at: ${resetFile.path}");
 
       setState(() {
@@ -1184,62 +1332,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   Future<void> _startLiveMode() async {
     debugPrint("--- STARTING LIVE MODE ---");
 
-    // First, request MediaProjection permission
+    // Request MediaProjection permission directly (instructions now only shown at first app launch)
     debugPrint("Requesting MediaProjection permission...");
-
-    // Show instruction dialog BEFORE MediaProjection request (unless user said don't show)
-    if (mounted && !_dontShowInstructionAgain) {
-      bool dontShowAgain = false;
-      await showDialog(
-        context: context,
-        builder: (ctx) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text("📱 Istruzioni"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "COME FUNZIONA\n\n"
-                  "1. Premi 'Attiva Scanner Live'\n"
-                  "2. Clicca su 'Condividi schermo'\n"
-                  "3. Apri la chat da analizzare\n\n"
-                  "COME USARE L'ICONA 👻\n\n"
-                  "• Tap singolo → Cattura screenshot\n"
-                  "• Doppio tap → Torna all'app\n\n"
-                  "Trascina l'icona dove preferisci!",
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: dontShowAgain,
-                      onChanged: (v) =>
-                          setDialogState(() => dontShowAgain = v ?? false),
-                    ),
-                    const Text("Non mostrare più"),
-                  ],
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  if (dontShowAgain) {
-                    await _saveInstructionPreference();
-                  }
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                  }
-                },
-                child: const Text("HO CAPITO",
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
 
     try {
       const platform = MethodChannel('device_screenshot');
@@ -1260,7 +1354,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                  "⚠️ Concedi il permesso di registrazione schermo nella finestra popup"),
+                "⚠️ Concedi il permesso di registrazione schermo nella finestra popup",
+              ),
               duration: Duration(seconds: 3),
             ),
           );
@@ -1322,8 +1417,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         positionGravity: PositionGravity.auto,
         height: 200,
         width: 200,
-        startPosition:
-            const OverlayPosition(0, 200), // Start below status bar area
+        startPosition: const OverlayPosition(
+          0,
+          200,
+        ), // Start below status bar area
       );
       debugPrint("Overlay Show Command Sent.");
 
@@ -1352,11 +1449,17 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               Navigator.pop(ctx);
               _startLiveMode();
             },
-            icon:
-                const Icon(Icons.emergency_recording, color: Color(0xFFF06292)),
-            label: const Text("SCANNER LIVE 👻",
-                style: TextStyle(
-                    color: Color(0xFFF06292), fontWeight: FontWeight.bold)),
+            icon: const Icon(
+              Icons.emergency_recording,
+              color: Color(0xFFF06292),
+            ),
+            label: const Text(
+              "SCANNER LIVE 👻",
+              style: TextStyle(
+                color: Color(0xFFF06292),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           TextButton.icon(
             onPressed: () {
@@ -1364,9 +1467,13 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               _pickImages();
             },
             icon: const Icon(Icons.folder_open, color: Color(0xFFBA68C8)),
-            label: const Text("DA DISPOSITIVO",
-                style: TextStyle(
-                    color: Color(0xFFBA68C8), fontWeight: FontWeight.bold)),
+            label: const Text(
+              "DA DISPOSITIVO",
+              style: TextStyle(
+                color: Color(0xFFBA68C8),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -1399,11 +1506,13 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     // Check rate limit first
     final remaining = await AICascadeService.getRemainingAnalyses();
     if (remaining <= 0) {
-      setState(() {
-        _remainingAnalyses = 0;
-        _error =
-            '⏰ Hai esaurito le ${RemoteConfigService.dailyAnalysisLimit} analisi giornaliere!\n\n🌙 Il contatore si resetterà a mezzanotte.\nTorna domani per altre ${RemoteConfigService.dailyAnalysisLimit} analisi gratuite! 💕';
-      });
+      if (mounted) {
+        setState(() {
+          _remainingAnalyses = 0;
+          _error =
+              '⏰ Hai esaurito le ${RemoteConfigService.dailyAnalysisLimit} analisi giornaliere!\n\n🌙 Il contatore si resetterà a mezzanotte.\nTorna domani per altre ${RemoteConfigService.dailyAnalysisLimit} analisi gratuite! 💕';
+        });
+      }
       return;
     }
 
@@ -1426,18 +1535,22 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       // Refresh remaining analyses counter
       await _loadRemainingAnalyses();
 
-      setState(() {
-        _analysisResult = result;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _analysisResult = result;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       // Refresh remaining analyses counter even on error
       await _loadRemainingAnalyses();
 
-      setState(() {
-        _error = AICascadeService.parseError(e);
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = AICascadeService.parseError(e);
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -1473,35 +1586,35 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             shadows: [
               // Pink outline effect using multiple shadows
               Shadow(
-                  offset: const Offset(-1, -1),
-                  color: isDark
-                      ? const Color(0xFFCE93D8)
-                      : const Color(0xFFF06292),
-                  blurRadius: 0),
+                offset: const Offset(-1, -1),
+                color:
+                    isDark ? const Color(0xFFCE93D8) : const Color(0xFFF06292),
+                blurRadius: 0,
+              ),
               Shadow(
-                  offset: const Offset(1, -1),
-                  color: isDark
-                      ? const Color(0xFFCE93D8)
-                      : const Color(0xFFF06292),
-                  blurRadius: 0),
+                offset: const Offset(1, -1),
+                color:
+                    isDark ? const Color(0xFFCE93D8) : const Color(0xFFF06292),
+                blurRadius: 0,
+              ),
               Shadow(
-                  offset: const Offset(-1, 1),
-                  color: isDark
-                      ? const Color(0xFFCE93D8)
-                      : const Color(0xFFF06292),
-                  blurRadius: 0),
+                offset: const Offset(-1, 1),
+                color:
+                    isDark ? const Color(0xFFCE93D8) : const Color(0xFFF06292),
+                blurRadius: 0,
+              ),
               Shadow(
-                  offset: const Offset(1, 1),
-                  color: isDark
-                      ? const Color(0xFFCE93D8)
-                      : const Color(0xFFF06292),
-                  blurRadius: 0),
+                offset: const Offset(1, 1),
+                color:
+                    isDark ? const Color(0xFFCE93D8) : const Color(0xFFF06292),
+                blurRadius: 0,
+              ),
             ],
           ),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: Icon(Icons.menu, color: Colors.white.withOpacity(0.9)),
+            icon: Icon(Icons.menu, color: Colors.white.withValues(alpha: 0.9)),
             tooltip: 'Menu',
             color: isDark ? const Color(0xFF2D2D2D) : Colors.white,
             shape: RoundedRectangleBorder(
@@ -1509,25 +1622,65 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             ),
             onSelected: _handleMenuSelection,
             itemBuilder: (context) => [
-              _buildMenuItem('instructions', Icons.help_outline, 'Istruzioni'),
-              _buildMenuItem('api_key', Icons.key, 'Usa la tua API Key'),
+              _buildMenuItem(
+                'instructions',
+                Icons.help_outline,
+                TranslationService().tr('menu_instructions'),
+              ),
+              _buildMenuItem(
+                'api_key',
+                Icons.key,
+                TranslationService().tr('menu_api_key'),
+              ),
               const PopupMenuDivider(),
               _buildMenuItem(
-                  'privacy', Icons.privacy_tip_outlined, 'Privacy Policy'),
-              _buildMenuItem('contact', Icons.email_outlined, 'Contattaci'),
-              _buildMenuItem('rate', Icons.star_outline, "Valuta l'app"),
-              _buildMenuItem('share', Icons.share_outlined, "Condividi l'app"),
+                'privacy',
+                Icons.privacy_tip_outlined,
+                TranslationService().tr('menu_privacy'),
+              ),
+              _buildMenuItem(
+                'contact',
+                Icons.email_outlined,
+                TranslationService().tr('menu_contact'),
+              ),
+              _buildMenuItem(
+                'rate',
+                Icons.star_outline,
+                TranslationService().tr('menu_rate'),
+              ),
+              _buildMenuItem(
+                'share',
+                Icons.share_outlined,
+                TranslationService().tr('menu_share'),
+              ),
               const PopupMenuDivider(),
               _buildMenuItem(
-                  'dark_mode', Icons.dark_mode_outlined, 'Tema Scuro'),
+                'dark_mode',
+                Icons.dark_mode_outlined,
+                TranslationService().tr('menu_dark_mode'),
+              ),
               _buildMenuItem(
-                  'credits', Icons.info_outline, 'Crediti & Licenze'),
+                'language',
+                Icons.language,
+                TranslationService().tr('menu_language'),
+              ),
               _buildMenuItem(
-                  'version', Icons.system_update_outlined, 'Versione'),
+                'credits',
+                Icons.info_outline,
+                TranslationService().tr('menu_credits'),
+              ),
+              _buildMenuItem(
+                'version',
+                Icons.system_update_outlined,
+                TranslationService().tr('menu_version'),
+              ),
               const PopupMenuDivider(),
               _buildMenuItem(
-                  'delete_data', Icons.delete_forever_outlined, 'Elimina Dati',
-                  isDestructive: true),
+                'delete_data',
+                Icons.delete_forever_outlined,
+                TranslationService().tr('menu_delete_data'),
+                isDestructive: true,
+              ),
             ],
           ),
         ],
@@ -1569,7 +1722,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   repeat: ImageRepeat.repeat,
                   scale: 8,
                   colorFilter: ColorFilter.mode(
-                    Colors.white.withOpacity(0.3),
+                    Colors.white.withValues(alpha: 0.3),
                     BlendMode.srcIn,
                   ),
                 ),
@@ -1584,11 +1737,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                 children: [
                   // Subtitle
                   Text(
-                    "Scopri in 3 secondi se ti desidera davvero 💜",
+                    TranslationService().tr('subtitle_desc'),
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -1600,22 +1753,26 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     onTap: _showCounterExplanation,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Colors.white.withOpacity(0.2),
-                            Colors.white.withOpacity(0.1),
+                            Colors.white.withValues(alpha: 0.2),
+                            Colors.white.withValues(alpha: 0.1),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(30),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           width: 1,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFE040FB).withOpacity(0.3),
+                            color: const Color(
+                              0xFFE040FB,
+                            ).withValues(alpha: 0.3),
                             blurRadius: 20,
                             spreadRadius: 2,
                           ),
@@ -1638,14 +1795,18 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                                         : const Color(0xFFFF5252),
                               )
                                   .animate(
-                                      onPlay: (c) => c.repeat(reverse: true))
+                                    onPlay: (c) => c.repeat(reverse: true),
+                                  )
                                   .scale(
-                                      begin: const Offset(1, 1),
-                                      end: const Offset(1.2, 1.2),
-                                      duration: 800.ms),
+                                    begin: const Offset(1, 1),
+                                    end: const Offset(1.2, 1.2),
+                                    duration: 800.ms,
+                                  ),
                               const SizedBox(width: 12),
                               Text(
-                                "$_remainingAnalyses/${RemoteConfigService.dailyAnalysisLimit}",
+                                _remainingAnalyses == 999
+                                    ? "∞"
+                                    : "$_remainingAnalyses/${RemoteConfigService.dailyAnalysisLimit}",
                                 style: GoogleFonts.orbitron(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -1656,15 +1817,23 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _remainingAnalyses >=
-                                    RemoteConfigService.dailyAnalysisLimit
-                                ? "Oggi sei al 100% 🔥"
-                                : _remainingAnalyses > 0
-                                    ? "Analisi rimaste oggi"
-                                    : "Torna domani! 🌙",
+                            _remainingAnalyses == 999
+                                ? "MODALITÀ ILLIMITATA 💎"
+                                : _remainingAnalyses >=
+                                        RemoteConfigService.dailyAnalysisLimit
+                                    ? TranslationService().tr(
+                                        'main_today_limit_reached',
+                                      )
+                                    : _remainingAnalyses > 0
+                                        ? TranslationService().tr(
+                                            'main_analysis_remaining',
+                                          )
+                                        : TranslationService().tr(
+                                            'main_come_back_tomorrow',
+                                          ),
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 12,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -1680,26 +1849,34 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                       padding: const EdgeInsets.all(16),
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.2),
+                        color: Colors.red.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.red.withOpacity(0.5)),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.5),
+                        ),
                       ),
                       child: Text(
                         _error!,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 14),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
 
                   if (_analysisResult == null && !_isLoading) ...[
-                    // Live Scanner Button with neon glow
+                    // Live Scanner Button with neon glow (CIRCULAR shadow only)
                     Container(
+                      width: 150,
+                      height: 150,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(35),
+                        shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFE040FB).withOpacity(0.5),
+                            color: const Color(
+                              0xFFE040FB,
+                            ).withValues(alpha: 0.5),
                             blurRadius: 25,
                             spreadRadius: 3,
                           ),
@@ -1714,8 +1891,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                           elevation: 0,
                         ),
                         child: Container(
-                          width: 120,
-                          height: 120,
+                          width: 150,
+                          height: 150,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: const LinearGradient(
@@ -1728,36 +1905,58 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFE040FB).withOpacity(0.6),
+                                color: const Color(
+                                  0xFFE040FB,
+                                ).withValues(alpha: 0.6),
                                 blurRadius: 20,
                                 spreadRadius: 2,
                               ),
                               BoxShadow(
-                                color: const Color(0xFFE040FB).withOpacity(0.3),
+                                color: const Color(
+                                  0xFFE040FB,
+                                ).withValues(alpha: 0.3),
                                 blurRadius: 40,
                                 spreadRadius: 5,
                               ),
                             ],
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.5),
+                              color: Colors.white.withValues(alpha: 0.5),
                               width: 2,
                             ),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.bolt,
-                                  color: Colors.white, size: 32),
-                              const SizedBox(height: 4),
                               Text(
-                                "SCANNER",
+                                TranslationService().tr('btn_scanner_usa'),
                                 style: GoogleFonts.orbitron(
-                                  fontSize: 11,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                               ),
-                              const Text("👻", style: TextStyle(fontSize: 18)),
+                              Text(
+                                TranslationService().tr('btn_scanner_live'),
+                                style: GoogleFonts.orbitron(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                TranslationService().tr(
+                                  'btn_scanner_live_text',
+                                ),
+                                style: GoogleFonts.orbitron(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const Text(
+                                "👻",
+                                style: TextStyle(fontSize: 22),
+                              ),
                             ],
                           ),
                         ),
@@ -1765,13 +1964,15 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     )
                         .animate(onPlay: (c) => c.repeat(reverse: true))
                         .scale(
-                            begin: const Offset(1, 1),
-                            end: const Offset(1.05, 1.05),
-                            duration: 1500.ms)
+                          begin: const Offset(1, 1),
+                          end: const Offset(1.05, 1.05),
+                          duration: 1500.ms,
+                        )
                         .then()
                         .shimmer(
-                            duration: 2.seconds,
-                            color: Colors.white.withOpacity(0.3)),
+                          duration: 2.seconds,
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
 
                     const SizedBox(height: 40),
 
@@ -1782,19 +1983,21 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                         child: Container(
                           width: MediaQuery.of(context).size.width * 0.8,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 20),
+                            horizontal: 24,
+                            vertical: 20,
+                          ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.white.withOpacity(0.15),
-                                Colors.white.withOpacity(0.05),
+                                Colors.white.withValues(alpha: 0.15),
+                                Colors.white.withValues(alpha: 0.05),
                               ],
                             ),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                               width: 1.5,
                             ),
                           ),
@@ -1804,15 +2007,15 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                               Icon(
                                 Icons.cloud_upload_outlined,
                                 size: 32,
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                "Upload Chat",
+                                TranslationService().tr('btn_upload_chat'),
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                 ),
                               ),
                             ],
@@ -1828,12 +2031,15 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     if (_images.isNotEmpty)
                       TextButton.icon(
                         onPressed: _clearAllScreenshots,
-                        icon: Icon(Icons.delete_sweep,
-                            color: Colors.white.withOpacity(0.7)),
+                        icon: Icon(
+                          Icons.delete_sweep,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
                         label: Text(
-                          "Cancella tutti",
-                          style:
-                              TextStyle(color: Colors.white.withOpacity(0.7)),
+                          TranslationService().tr('btn_clear_all'),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
                         ),
                       ),
 
@@ -1856,7 +2062,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                         "Analisi istantanee · ${RemoteConfigService.dailyAnalysisLimit} al giorno",
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -1865,7 +2071,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                         "100% anonimo",
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -1944,8 +2150,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                       ],
                     ),
                     child: const Center(
-                      child:
-                          Icon(Icons.add, color: Color(0xFFBA68C8), size: 40),
+                      child: Icon(
+                        Icons.add,
+                        color: Color(0xFFBA68C8),
+                        size: 40,
+                      ),
                     ),
                   ),
                 );
@@ -1956,7 +2165,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: const Color(0xFFBA68C8).withValues(alpha: 0.3)),
+                    color: const Color(0xFFBA68C8).withValues(alpha: 0.3),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
@@ -1968,10 +2178,12 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.file(_images[index],
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity),
+                      child: Image.file(
+                        _images[index],
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
                     ),
                     Positioned(
                       top: 5,
@@ -1988,8 +2200,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close,
-                              size: 16, color: Color(0xFFBA68C8)),
+                          child: const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Color(0xFFBA68C8),
+                          ),
                         ),
                       ),
                     ),
@@ -2066,12 +2281,12 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFE040FB).withOpacity(0.5),
+                color: const Color(0xFFE040FB).withValues(alpha: 0.5),
                 blurRadius: 25,
                 spreadRadius: 3,
               ),
               BoxShadow(
-                color: const Color(0xFFBA68C8).withOpacity(0.3),
+                color: const Color(0xFFBA68C8).withValues(alpha: 0.3),
                 blurRadius: 40,
                 spreadRadius: 8,
               ),
@@ -2080,15 +2295,21 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           child: ElevatedButton(
             onPressed: _analyzeImages,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE040FB), // Brighter purple-pink
+              backgroundColor: const Color(
+                0xFFE040FB,
+              ), // Brighter purple-pink
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 50,
+                vertical: 20,
+              ),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30)),
+                borderRadius: BorderRadius.circular(30),
+              ),
               elevation: 0,
             ),
             child: Text(
-              "ANALIZZA ORA",
+              TranslationService().tr('btn_analyze'),
               style: GoogleFonts.orbitron(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -2099,11 +2320,15 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         )
             .animate(onPlay: (c) => c.repeat(reverse: true))
             .scale(
-                begin: const Offset(1, 1),
-                end: const Offset(1.03, 1.03),
-                duration: 1200.ms)
+              begin: const Offset(1, 1),
+              end: const Offset(1.03, 1.03),
+              duration: 1200.ms,
+            )
             .then()
-            .shimmer(duration: 2.seconds, color: Colors.white.withOpacity(0.4)),
+            .shimmer(
+              duration: 2.seconds,
+              color: Colors.white.withValues(alpha: 0.4),
+            ),
       ],
     );
   }
@@ -2113,9 +2338,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       children: [
         Animate(
           onPlay: (controller) => controller.repeat(),
-          effects: [
-            RotateEffect(duration: 2.seconds, curve: Curves.easeInOut),
-          ],
+          effects: [RotateEffect(duration: 2.seconds, curve: Curves.easeInOut)],
           child: Container(
             width: 100,
             height: 100,
@@ -2134,13 +2357,12 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         const SizedBox(height: 30),
         Text(
           _loadingMessage,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 16,
-            color: Colors.white,
-          ),
+          style: GoogleFonts.jetBrainsMono(fontSize: 16, color: Colors.white),
           textAlign: TextAlign.center,
         ).animate().fadeIn().shimmer(
-            duration: 2.seconds, color: Colors.white.withValues(alpha: 0.5)),
+              duration: 2.seconds,
+              color: Colors.white.withValues(alpha: 0.5),
+            ),
       ],
     );
   }
@@ -2242,7 +2464,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: const Color(0xFF4DD0E1).withValues(alpha: 0.2)),
+                  color: const Color(0xFF4DD0E1).withValues(alpha: 0.2),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
@@ -2263,8 +2486,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   ),
                   const SizedBox(width: 10),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE0F7FA),
                       borderRadius: BorderRadius.circular(8),
@@ -2308,15 +2533,20 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               ElevatedButton.icon(
                 onPressed: () {
                   Clipboard.setData(
-                      ClipboardData(text: _analysisResult!['next_move']));
+                    ClipboardData(text: _analysisResult!['next_move']),
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Copiato negli appunti!")),
                   );
                 },
                 icon: const Icon(Icons.copy, color: Colors.white),
-                label: const Text("COPIA",
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
+                label: const Text(
+                  "COPIA",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFB74D),
                   foregroundColor: Colors.white,
@@ -2333,13 +2563,16 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         OutlinedButton.icon(
           onPressed: _showAddScreenshotsOptions,
           icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
-          label: const Text("AGGIUNGI ALTRI SCREEN",
-              style: TextStyle(color: Colors.white)),
+          label: const Text(
+            "AGGIUNGI ALTRI SCREEN",
+            style: TextStyle(color: Colors.white),
+          ),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: Colors.white),
             padding: const EdgeInsets.symmetric(vertical: 15),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
 
@@ -2350,8 +2583,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             onPressed: () async {
               await _clearAllScreenshots(showMessage: false);
             },
-            child: const Text("ANALIZZA UN'ALTRA CHAT",
-                style: TextStyle(color: Colors.white)),
+            child: const Text(
+              "ANALIZZA UN'ALTRA CHAT",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ),
         const SizedBox(height: 20),

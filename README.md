@@ -1,20 +1,15 @@
 # Doctor Love 💕
 
-<p align="center">
-  <img src="assets/icon.png" alt="Doctor Love Logo" width="120" height="120">
-</p>
+![Doctor Love Logo](assets/icon.png)
 
-<p align="center">
-  <strong>AI-Powered Chat Interest Analyzer</strong><br>
-  Analyze your chat screenshots and get AI-driven insights about interest levels
-</p>
+## AI-Powered Chat Interest Analyzer
+  
+Analyze your chat screenshots and get AI-driven insights about interest levels
 
-<p align="center">
-  <img src="https://img.shields.io/badge/version-3.5.1-blue.svg" alt="Version">
-  <img src="https://img.shields.io/badge/platform-Android-green.svg" alt="Platform">
-  <img src="https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter" alt="Flutter">
-  <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
-</p>
+![Version](https://img.shields.io/badge/version-3.5.7-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Android-green.svg)
+![Flutter](https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter)
+![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
 ---
 
@@ -34,6 +29,7 @@
 - 🖼️ **Unlimited Screenshots** - Auto-merges images to bypass API limits
 - 🔑 **BYOK Mode** - Use your own Google Gemini API key for unlimited analyses
 - ⚙️ **Professional Menu** - Settings, privacy, share, credits and more
+- 🌍 **Multi-language Support** - Italiano 🇮🇹 / English 🇺🇸 (Auto-detect & Manual Switch)
 
 ---
 
@@ -87,7 +83,7 @@ The application implements a sophisticated architecture to handle screen capture
 
 ### System Overview
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
 │                    DOCTOR LOVE ARCHITECTURE                      │
 ├──────────────────────────────────────────────────────────────────┤
@@ -200,7 +196,7 @@ The API key is securely embedded and obfuscated at build time.
 
 1. Create a `.env` file in the project root:
 
-   ```
+   ```env
    GEMINI_API_KEY=your_api_key_here
    ```
 
@@ -293,7 +289,7 @@ When running on Android 14 or higher:
 
 ## 📁 Project Structure
 
-```
+```text
 doctor_love/
 ├── android/                    # Android native code
 │   └── app/src/main/
@@ -334,7 +330,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-**Doctor Love Team**
+### Doctor Love Team
 
 - GitHub: [@doctorloveapp](https://github.com/doctorloveapp)
 
@@ -348,6 +344,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-<p align="center">
-  Made with ❤️ and Flutter
-</p>
+Made with ❤️ and Flutter

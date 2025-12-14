@@ -15,6 +15,7 @@ class UserPreferencesService {
 
   // Keys
   static const _keyApiKey = 'user_gemini_api_key';
+  static const _keyApiKeyEnabled = 'user_gemini_api_key_enabled'; // New toggle
   static const _keyDarkMode = 'dark_mode';
   static const _keyLanguageOverride = 'language_override';
   static const _keyDontShowInstructions = 'dont_show_instructions';
@@ -37,13 +38,29 @@ class UserPreferencesService {
   /// Save user's custom API key securely
   static Future<void> setCustomApiKey(String apiKey) async {
     await _secureStorage.write(key: _keyApiKey, value: apiKey);
+    // Auto-enable when setting a new key
+    await setCustomApiKeyEnabled(true);
     debugPrint('✅ User API key saved securely');
   }
 
   /// Remove user's custom API key (return to default cascade)
   static Future<void> removeCustomApiKey() async {
     await _secureStorage.delete(key: _keyApiKey);
+    await setCustomApiKeyEnabled(false);
     debugPrint('✅ User API key removed');
+  }
+
+  /// Check if custom API key is enabled by user
+  static Future<bool> isCustomApiKeyEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyApiKeyEnabled) ??
+        true; // Default to true if key exists
+  }
+
+  /// Set custom API key enabled status
+  static Future<void> setCustomApiKeyEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyApiKeyEnabled, enabled);
   }
 
   // ============================================================

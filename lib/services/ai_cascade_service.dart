@@ -19,6 +19,7 @@ enum DebugModelChoice {
   geminiFlash, // Gemini 2.5 Flash only
   groqScout, // Groq Llama 4 Scout only
   groqMaverick, // Groq Llama 4 Maverick only
+  customKey, // Force use of custom API Key
 }
 
 extension DebugModelChoiceExtension on DebugModelChoice {
@@ -34,6 +35,8 @@ extension DebugModelChoiceExtension on DebugModelChoice {
         return '🦙 Groq Llama Scout';
       case DebugModelChoice.groqMaverick:
         return '🚀 Groq Llama Maverick';
+      case DebugModelChoice.customKey:
+        return '🔑 Custom API Key';
     }
   }
 }
@@ -228,6 +231,9 @@ Regole ferree:
             'meta-llama/llama-4-maverick-17b-128e-instruct',
           );
           break;
+        case DebugModelChoice.customKey:
+          result = await _callWithUserApiKey(imageBytesList);
+          break;
         case DebugModelChoice.cascade:
           throw Exception('Cascade should not be called via _callSingleModel');
       }
@@ -251,10 +257,13 @@ Regole ferree:
     _log(
         'Total bytes: ${imageBytesList.fold<int>(0, (sum, bytes) => sum + bytes.length)}');
 
-    // Check if user has their own API key (BYOK mode)
+    // Check if user has their own API key (BYOK mode) AND it is enabled
     final hasCustomKey = await UserPreferencesService.hasCustomApiKey();
-    if (hasCustomKey) {
-      _log('🔑 BYOK MODE: User has custom API key - bypassing limits');
+    final isCustomKeyEnabled =
+        await UserPreferencesService.isCustomApiKeyEnabled();
+
+    if (hasCustomKey && isCustomKeyEnabled) {
+      _log('🔑 BYOK MODE: User has custom API key ENABLED - bypassing limits');
       return await _callWithUserApiKey(imageBytesList);
     }
 
