@@ -725,70 +725,76 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     future: UserPreferencesService.isCustomApiKeyEnabled(),
                     builder: (context, snapshot) {
                       final isEnabled = snapshot.data ?? true;
-                      return SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Usa questa API Key',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                      return Column(
+                        children: [
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text(
+                              'Usa questa API Key',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: Text(
+                              isEnabled
+                                  ? 'Attiva'
+                                  : 'Disattivata (Usa default)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isEnabled ? Colors.green : Colors.grey,
+                              ),
+                            ),
+                            value: isEnabled,
+                            activeThumbColor: const Color(0xFFBA68C8),
+                            onChanged: (bool value) async {
+                              await UserPreferencesService
+                                  .setCustomApiKeyEnabled(value);
+                              setDialogState(() {}); // Update dialog
+                              if (mounted) {
+                                _loadRemainingAnalyses(); // Update main UI
+                                setState(() {}); // Rebuild main
+                              }
+                            },
                           ),
-                        ),
-                        subtitle: Text(
-                          isEnabled ? 'Attiva' : 'Disattivata (Usa default)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isEnabled ? Colors.green : Colors.grey,
-                          ),
-                        ),
-                        value: isEnabled,
-                        activeThumbColor: const Color(0xFFBA68C8),
-                        onChanged: (bool value) async {
-                          await UserPreferencesService.setCustomApiKeyEnabled(
-                            value,
-                          );
-                          setDialogState(() {}); // Update dialog
-                          if (mounted) {
-                            _loadRemainingAnalyses(); // Update main UI
-                            setState(() {}); // Rebuild main
-                          }
-                        },
+                          if (isEnabled) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.green.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      TranslationService()
+                                          .tr('api_key_active_banner'),
+                                      style: const TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       );
                     },
-                  ),
-
-                const SizedBox(height: 16),
-                // SECURITY NOTE
-                const Text(
-                  '🔐 La tua chiave viene salvata in modo sicuro sul dispositivo e NON viene mai condivisa con noi.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 12),
-                // STATUS OR INSTRUCTIONS
-                if (hasKey) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.green.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'API Key attiva! Stai usando analisi illimitate.',
-                            style: TextStyle(color: Colors.green, fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else ...[
+                  )
+                else ...[
                   const Text(
                     'Vantaggi con la tua Google API Key:',
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
@@ -1904,43 +1910,6 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                         textAlign: TextAlign.center,
                       ),
                     ),
-
-                  // Custom Key Active Banner
-                  if (_isCustomKeyEnabled) ...[
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.green.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            TranslationService().tr('api_key_active_banner'),
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 12,
-                              color: Colors.green.shade100,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
 
                   if (_analysisResult == null && !_isLoading) ...[
                     // Live Scanner Button with neon glow (CIRCULAR shadow only)
