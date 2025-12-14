@@ -369,6 +369,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       false; // Static flag for session strictness
   int _remainingAnalyses =
       RemoteConfigService.dailyAnalysisLimit; // Daily rate limit counter
+  bool _isCustomKeyEnabled = false; // Cache custom key status
 
   final ImagePicker _picker = ImagePicker();
 
@@ -408,6 +409,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       if (mounted) {
         setState(() {
           _remainingAnalyses = 999; // Code for unlimited
+          _isCustomKeyEnabled = true;
         });
       }
       return;
@@ -417,6 +419,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     if (mounted) {
       setState(() {
         _remainingAnalyses = remaining;
+        _isCustomKeyEnabled = false;
       });
     }
   }
@@ -430,8 +433,19 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         // Preference loaded: do not show instructions
       } else {
         // First launch - show instructions automatically
-        // STRICT CHECK: Only if not already shown this session
-        if (!_sessionInstructionsShown && mounted) {
+        // STRICT CHECK: Only if not already shown this session AND no pending work
+        // Check if there are screenshots manually to avoid race condition with _loadScreenshotsFromFolder
+        bool hasPendingScreenshots = false;
+        try {
+          final screenshotsDir = Directory('${extDir.path}/screenshots');
+          if (await screenshotsDir.exists()) {
+            final files = await screenshotsDir.list().toList();
+            hasPendingScreenshots =
+                files.where((f) => f.path.endsWith('.png')).isNotEmpty;
+          }
+        } catch (_) {}
+
+        if (!_sessionInstructionsShown && !hasPendingScreenshots && mounted) {
           _sessionInstructionsShown = true;
           // Delay slightly to ensure UI is ready
           await Future.delayed(const Duration(milliseconds: 500));
@@ -815,9 +829,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                         const SizedBox(height: 4),
                         const Text(
                           '1. Vai su Google AI Studio\n'
-                          '2. Accedi con il tuo account Google\n'
-                          '3. Clicca "Get API Key" → "Create API Key"\n'
-                          '4. Copia e incolla qui sopra',
+                          '2. Accedi e clicca "Get API Key"\n'
+                          '3. Clicca "Create API Key" (seleziona "New Project")\n'
+                          '4. Copia la chiave e incollala qui sotto',
                           style: TextStyle(fontSize: 11),
                         ),
                         const SizedBox(height: 6),
@@ -893,12 +907,18 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     await UserPreferencesService.removeCustomApiKey();
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('✅ API Key rimossa'),
-                          backgroundColor: Colors.orange,
-                        ),
-                      );
+                      if (mounted) {
+                        await _loadRemainingAnalyses(); // Update UI immediately
+                        setState(() {});
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✅ API Key rimossa'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                      }
                     }
                   }
                 },
@@ -937,17 +957,25 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
                 // Save the key
                 await UserPreferencesService.setCustomApiKey(newKey);
+                // Force enable it
+                await UserPreferencesService.setCustomApiKeyEnabled(true);
 
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        '✅ API Key salvata! Ora hai analisi illimitate 🎉',
+                }
+
+                if (mounted) {
+                  await _loadRemainingAnalyses(); // Logic inside checks mounted
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          '✅ Chiave salvata e attivata! Analisi illimitate 🎉',
+                        ),
+                        backgroundColor: Colors.green,
                       ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                    );
+                  }
                 }
               },
               child: Text(
@@ -1504,16 +1532,23 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     if (_images.isEmpty) return;
 
     // Check rate limit first
-    final remaining = await AICascadeService.getRemainingAnalyses();
-    if (remaining <= 0) {
-      if (mounted) {
-        setState(() {
-          _remainingAnalyses = 0;
-          _error =
-              '⏰ Hai esaurito le ${RemoteConfigService.dailyAnalysisLimit} analisi giornaliere!\n\n🌙 Il contatore si resetterà a mezzanotte.\nTorna domani per altre ${RemoteConfigService.dailyAnalysisLimit} analisi gratuite! 💕';
-        });
+    // Check custom key first
+    final hasKey = await UserPreferencesService.hasCustomApiKey();
+    final isEnabled = await UserPreferencesService.isCustomApiKeyEnabled();
+
+    // Only check rate limit if NOT using custom key
+    if (!hasKey || !isEnabled) {
+      final remaining = await AICascadeService.getRemainingAnalyses();
+      if (remaining <= 0) {
+        if (mounted) {
+          setState(() {
+            _remainingAnalyses = 0;
+            _error =
+                '⏰ Hai esaurito le ${RemoteConfigService.dailyAnalysisLimit} analisi giornaliere!\n\n🌙 Il contatore si resetterà a mezzanotte.\nTorna domani per altre ${RemoteConfigService.dailyAnalysisLimit} analisi gratuite! 💕';
+          });
+        }
+        return;
       }
-      return;
     }
 
     setState(() {
@@ -1540,6 +1575,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           _analysisResult = result;
           _isLoading = false;
         });
+
+        // Check for fallback flag
+        if (result.containsKey('__custom_key_fallback__')) {
+          _showCustomKeyFallbackDialog();
+        }
       }
     } catch (e) {
       // Refresh remaining analyses counter even on error
@@ -1865,6 +1905,43 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                       ),
                     ),
 
+                  // Custom Key Active Banner
+                  if (_isCustomKeyEnabled) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.green.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            TranslationService().tr('api_key_active_banner'),
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 12,
+                              color: Colors.green.shade100,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   if (_analysisResult == null && !_isLoading) ...[
                     // Live Scanner Button with neon glow (CIRCULAR shadow only)
                     Container(
@@ -2059,7 +2136,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   Column(
                     children: [
                       Text(
-                        "Analisi istantanee · ${RemoteConfigService.dailyAnalysisLimit} al giorno",
+                        _isCustomKeyEnabled
+                            ? TranslationService().tr('instant_analysis')
+                            : "${TranslationService().tr('instant_analysis')} · ${TranslationService().tr('daily_limit_subtitle')}",
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           color: Colors.white.withValues(alpha: 0.5),
@@ -2330,6 +2409,43 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               color: Colors.white.withValues(alpha: 0.4),
             ),
       ],
+    );
+  }
+
+  void _showCustomKeyFallbackDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("⚠️ API Key Consumata"),
+        content: const Text(
+            "La tua API Key ha raggiunto il limite di quota.\n\n"
+            "Abbiamo completato l'analisi usando il sistema di riserva di Doctor Love.\n\n"
+            "Vuoi disabilitare temporaneamente la tua chiave?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Mantieni attiva"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await UserPreferencesService.setCustomApiKeyEnabled(false);
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
+              if (mounted) {
+                _loadRemainingAnalyses();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        "✅ Chiave disabilitata. Usiamo il sistema standard."),
+                  ),
+                );
+              }
+            },
+            child: const Text("Disabilita Key"),
+          ),
+        ],
+      ),
     );
   }
 

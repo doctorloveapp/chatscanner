@@ -51,7 +51,7 @@ class AICascadeService {
   // ============================================================
   // DEBUG MODE - Set to false for production release
   // ============================================================
-  static const bool debugModeEnabled = true;
+  static const bool debugModeEnabled = false;
 
   /// Currently selected model for debug testing
   static DebugModelChoice selectedModel = DebugModelChoice.cascade;
@@ -128,9 +128,10 @@ Regole ferree:
   }
 
   /// BYOK: Call Gemini with user's own API key (no rate limit)
-  static Future<Map<String, dynamic>> _callWithUserApiKey(
+  /// BYOK: Cascade Gemini 2.5 Pro -> Gemini 2.5 Flash using user's key
+  static Future<Map<String, dynamic>> _callWithUserApiKeyCascade(
       List<Uint8List> imageBytesList) async {
-    _log('🔑 BYOK: Calling Gemini with user API key');
+    _log('🔑 BYOK: Starting Custom Key Cascade');
 
     final userApiKey = await UserPreferencesService.getCustomApiKey();
     if (userApiKey == null || userApiKey.isEmpty) {
@@ -138,68 +139,34 @@ Regole ferree:
     }
 
     try {
-      // Use the best model with user's key
-      final model = GenerativeModel(
-        model: 'gemini-2.5-pro',
-        apiKey: userApiKey,
-        generationConfig: GenerationConfig(
-          responseMimeType: 'application/json',
-          maxOutputTokens: 8192,
-        ),
-      );
-
-      // Build content parts
-      final List<Part> parts = [TextPart(_doctorLovePrompt)];
-      for (int i = 0; i < imageBytesList.length; i++) {
-        parts.add(DataPart('image/jpeg', imageBytesList[i]));
-      }
-
+      _log('🔑 BYOK: Trying TIER 1 (Gemini 2.5 Pro)');
+      return await _callGemini(imageBytesList, 'gemini-2.5-pro',
+          overrideApiKey: userApiKey);
+    } catch (e) {
       _log(
-          '🔑 BYOK: Sending ${imageBytesList.length} images to Gemini 2.5 Pro');
-      final response = await model.generateContent([Content.multi(parts)]);
-      final text = response.text;
+          '⚠️ BYOK: TIER 1 Failed (${e.toString()}). Falling back to TIER 2 (Flash)');
 
-      if (text == null || text.isEmpty) {
-        throw Exception('Empty response from Gemini');
+      // Check if it's a critical error that shouldn't be retried?
+      // For now, try Flash for everything except maybe invalid key, but even then, safer to try.
+      try {
+        return await _callGemini(imageBytesList, 'gemini-2.5-flash',
+            overrideApiKey: userApiKey);
+      } catch (e2) {
+        _log('❌ BYOK: TIER 2 Failed also.');
+        // Throw the original error or the new one?
+        // Throwing e2 is more relevant as it's the final failure.
+
+        // Use existing error parsing to throw specific messages
+        final errStr = e2.toString().toLowerCase();
+        if (errStr.contains('api_key_invalid') ||
+            errStr.contains('invalid api key')) {
+          throw Exception('La tua API Key non è valida. Controlla e riprova.');
+        }
+        if (errStr.contains('quota')) {
+          throw Exception('Hai esaurito la quota della tua API Key.');
+        }
+        rethrow;
       }
-
-      _log('🔑 BYOK: Response received, parsing JSON...');
-
-      // Parse JSON response
-      String cleanedText = text;
-      if (cleanedText.startsWith('```json')) {
-        cleanedText = cleanedText.substring(7);
-      }
-      if (cleanedText.startsWith('```')) {
-        cleanedText = cleanedText.substring(3);
-      }
-      if (cleanedText.endsWith('```')) {
-        cleanedText = cleanedText.substring(0, cleanedText.length - 3);
-      }
-      cleanedText = cleanedText.trim();
-
-      final Map<String, dynamic> result = json.decode(cleanedText);
-
-      // Validate required fields
-      if (!result.containsKey('interesse') || !result.containsKey('titolo')) {
-        throw Exception('Invalid response format');
-      }
-
-      _log('🔑 BYOK: SUCCESS! User API key analysis complete');
-      return result;
-    } catch (e, stackTrace) {
-      _logError('BYOK Gemini', e, stackTrace);
-
-      // Provide user-friendly error
-      if (e.toString().toLowerCase().contains('api_key_invalid') ||
-          e.toString().toLowerCase().contains('invalid api key')) {
-        throw Exception('La tua API Key non è valida. Controlla e riprova.');
-      }
-      if (e.toString().toLowerCase().contains('quota')) {
-        throw Exception('Hai esaurito la quota della tua API Key.');
-      }
-
-      throw Exception('Errore con la tua API Key: $e');
     }
   }
 
@@ -232,7 +199,7 @@ Regole ferree:
           );
           break;
         case DebugModelChoice.customKey:
-          result = await _callWithUserApiKey(imageBytesList);
+          result = await _callWithUserApiKeyCascade(imageBytesList);
           break;
         case DebugModelChoice.cascade:
           throw Exception('Cascade should not be called via _callSingleModel');
@@ -264,7 +231,29 @@ Regole ferree:
 
     if (hasCustomKey && isCustomKeyEnabled) {
       _log('🔑 BYOK MODE: User has custom API key ENABLED - bypassing limits');
-      return await _callWithUserApiKey(imageBytesList);
+      try {
+        return await _callWithUserApiKeyCascade(imageBytesList);
+      } catch (e) {
+        final errStr = e.toString().toLowerCase();
+        if (errStr.contains('quota') ||
+            errStr.contains('resource_exhausted') ||
+            errStr.contains('429')) {
+          // Only fall back if the user actually has standard analyses remaining!
+          // Otherwise, show them the real error from their key so they know it was attempted.
+          final existingQuota = await getRemainingAnalyses();
+          if (existingQuota > 0) {
+            _log('⚠️ Custom Key Exhausted! Falling back to standard cascade.');
+          } else {
+            // No standard quota left to fall back to.
+            // Rethrow the original error so the user sees "Quota Exceeded" from their own key
+            // instead of "Daily Limit Reached" from the app.
+            _log('⚠️ Custom Key Exhausted and no standard quota. Rethrowing.');
+            rethrow;
+          }
+        } else {
+          rethrow; // Invalid key or other errors should still fail
+        }
+      }
     }
 
     // Check rate limit (only for default cascade)
@@ -290,6 +279,12 @@ Regole ferree:
           await _callGeminiWithRetry(imageBytesList, 'gemini-2.5-pro');
       _log('TIER 1 SUCCESS! Gemini 2.5 Pro responded correctly');
       await _incrementAnalysisCount();
+      // If we fell back from custom key, mark it (this is a heuristic, passing a flag would be cleaner but this works if we fell through)
+      if (hasCustomKey && isCustomKeyEnabled) {
+        final mutableResult = Map<String, dynamic>.from(result);
+        mutableResult['__custom_key_fallback__'] = true;
+        return mutableResult;
+      }
       return result;
     } catch (e, stackTrace) {
       _logError('TIER 1 (Gemini 2.5 Pro)', e, stackTrace);
@@ -303,6 +298,11 @@ Regole ferree:
           await _callGeminiWithRetry(imageBytesList, 'gemini-2.5-flash');
       _log('TIER 2 SUCCESS! Gemini 2.5 Flash responded correctly');
       await _incrementAnalysisCount();
+      if (hasCustomKey && isCustomKeyEnabled) {
+        final mutableResult = Map<String, dynamic>.from(result);
+        mutableResult['__custom_key_fallback__'] = true;
+        return mutableResult;
+      }
       return result;
     } catch (e, stackTrace) {
       _logError('TIER 2 (Gemini 2.5 Flash)', e, stackTrace);
@@ -318,6 +318,11 @@ Regole ferree:
       );
       _log('TIER 3 SUCCESS! Groq Llama 4 Scout responded correctly');
       await _incrementAnalysisCount();
+      if (hasCustomKey && isCustomKeyEnabled) {
+        final mutableResult = Map<String, dynamic>.from(result);
+        mutableResult['__custom_key_fallback__'] = true;
+        return mutableResult;
+      }
       return result;
     } catch (e, stackTrace) {
       _logError('TIER 3 (Groq Llama 4 Scout)', e, stackTrace);
@@ -333,6 +338,12 @@ Regole ferree:
       );
       _log('TIER 4 SUCCESS! Groq Llama 4 Maverick responded correctly');
       await _incrementAnalysisCount();
+      await _incrementAnalysisCount();
+      if (hasCustomKey && isCustomKeyEnabled) {
+        final mutableResult = Map<String, dynamic>.from(result);
+        mutableResult['__custom_key_fallback__'] = true;
+        return mutableResult;
+      }
       return result;
     } catch (e, stackTrace) {
       _logError('TIER 4 (Groq Llama 4 Maverick)', e, stackTrace);
@@ -372,19 +383,30 @@ Regole ferree:
 
   /// Call Gemini API
   static Future<Map<String, dynamic>> _callGemini(
-      List<Uint8List> imageBytesList, String modelName) async {
+      List<Uint8List> imageBytesList, String modelName,
+      {String? overrideApiKey}) async {
     _log('Gemini: Creating model instance');
     _log('Gemini: Model = $modelName');
-    _log('Gemini: API Key length = ${Env.geminiApiKey.length} chars');
+
+    final apiKeyToUse = overrideApiKey ?? Env.geminiApiKey;
+    _log('Gemini: API Key length = ${apiKeyToUse.length} chars');
 
     final model = GenerativeModel(
       model: modelName,
-      apiKey: Env.geminiApiKey,
+      apiKey: apiKeyToUse,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
       ),
       systemInstruction: Content.system(_doctorLovePrompt),
     );
+
+    if (AICascadeService.debugModeEnabled) {
+      final k = apiKeyToUse;
+      final masked = k.length > 8
+          ? '${k.substring(0, 4)}...${k.substring(k.length - 4)}'
+          : 'SHORT';
+      _log('Gemini: Using KEY: $masked');
+    }
 
     final List<Part> parts = [TextPart('Analizza questi screenshot di chat.')];
     for (var bytes in imageBytesList) {
@@ -683,19 +705,24 @@ Regole ferree:
   static String parseError(dynamic error) {
     final errorStr = error.toString().toLowerCase();
 
+    // Differentiate between App Limit and API Quota
     if (errorStr.contains('rate_limit_exceeded')) {
       return 'Hai raggiunto il limite di $_maxAnalysesPerDay analisi oggi. Riprova domani!';
     }
+    // Deep check for API quota - usually triggered by Custom Keys
+    if (errorStr.contains('quota') ||
+        errorStr.contains('resource_exhausted') ||
+        errorStr.contains('429')) {
+      return '⚠️ La tua API Key ha esaurito la quota disponibile.';
+    }
+
     if (errorStr.contains('all_models_failed')) {
       return 'Servizio temporaneamente sovraccarico, riprova tra 1 minuto';
     }
     if (errorStr.contains('api_key_invalid') ||
         errorStr.contains('invalid api key') ||
         errorStr.contains('invalid_api_key')) {
-      return 'Errore di configurazione API. Contatta il supporto.';
-    }
-    if (errorStr.contains('quota') || errorStr.contains('resource_exhausted')) {
-      return 'Limite richieste raggiunto. Riprova tra qualche minuto.';
+      return '❌ La tua API Key non è valida. Controlla di averla copiata bene.';
     }
     if (errorStr.contains('network') ||
         errorStr.contains('connection') ||

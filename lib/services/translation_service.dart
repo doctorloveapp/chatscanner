@@ -70,8 +70,8 @@ class TranslationService extends ChangeNotifier {
       'en': 'AI Chat Analyzer',
     },
     'subtitle_desc': {
-      'it': 'Scopri in 3 secondi se ti desidera davvero 💜',
-      'en': 'Discover if they really desire you in 3 seconds 💜',
+      'it': 'Scopri in pochi secondi se ti desidera davvero 💜',
+      'en': 'Discover if they really desire you in a few seconds 💜',
     },
 
     // MENU ITEMS
@@ -177,9 +177,9 @@ class TranslationService extends ChangeNotifier {
     },
     'dialog_api_desc_1': {
       'it':
-          'Doctor Love usa un sistema a cascata (Gemini Pro → Flash → Groq).\n\nPer analisi ILLIMITATE e più veloci, inserisci la tua API Key di Google Gemini.',
+          'Vantaggi con la tua API Key:\n\n• Modello Gemini 2.5 Pro (con abbonamento Google attivo)\n• Modello Gemini 2.5 Flash (anche senza abbonamento attivo)\n\nPer analisi ILLIMITATE e più veloci.',
       'en':
-          'Doctor Love uses a cascade system (Gemini Pro → Flash → Groq).\n\nFor UNLIMITED and faster analyses, enter your Google Gemini API Key.',
+          'Benefits with your API Key:\n\n• Gemini 2.5 Pro Model (with active Google subscription)\n• Gemini 2.5 Flash Model (even without active subscription)\n\nFor UNLIMITED and faster analyses.',
     },
     'dialog_api_desc_2': {
       'it':
@@ -330,6 +330,24 @@ class TranslationService extends ChangeNotifier {
     'toast_analysis_limit': {
       'it': 'Hai raggiunto il limite giornaliero!',
       'en': 'You reached the daily limit!',
+    },
+
+    // NEW KEYS v3.7.1
+    'api_key_active_banner': {
+      'it': 'Api key attiva! Stai usando analisi illimitate',
+      'en': 'Api key active! You are using unlimited analyses',
+    },
+    'instant_analysis': {
+      'it': 'Analisi Istantanea',
+      'en': 'Instant Analysis',
+    },
+    'daily_limit_subtitle': {
+      'it': '5 al giorno - 100% anonimo',
+      'en': '5 per day - 100% anonymous',
+    },
+    'unlimited_mode': {
+      'it': 'Modalità Illimitata',
+      'en': 'Unlimited Mode',
     },
   };
 }

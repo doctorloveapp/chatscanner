@@ -6,7 +6,7 @@
   
 Analyze your chat screenshots and get AI-driven insights about interest levels
 
-![Version](https://img.shields.io/badge/version-3.5.7-blue.svg)
+![Version](https://img.shields.io/badge/version-3.7.1-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Android-green.svg)
 ![Flutter](https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
@@ -27,9 +27,10 @@ Analyze your chat screenshots and get AI-driven insights about interest levels
 - 🔄 **Smart Retry** - 3 attempts per model with exponential backoff
 - 📅 **Daily Rate Limit** - 5 analyses per day (configurable via Firebase)
 - 🖼️ **Unlimited Screenshots** - Auto-merges images to bypass API limits
-- 🔑 **BYOK Mode** - Use your own Google Gemini API key for unlimited analyses
+- 🔑 **BYOK Mode** - Use your own Google Gemini API key (Auto-fallback: Pro → Flash)
 - ⚙️ **Professional Menu** - Settings, privacy, share, credits and more
 - 🌍 **Multi-language Support** - Italiano 🇮🇹 / English 🇺🇸 (Auto-detect & Manual Switch)
+- ✨ **Dynamic UI** - "Unlimited" branding when using custom keys
 
 ---
 
@@ -41,7 +42,7 @@ Analyze your chat screenshots and get AI-driven insights about interest levels
 
 ---
 
-## 🤖 AI Cascade System (v3.2.0)
+## 🤖 AI Cascade System (v3.7.1)
 
 The app uses a **4-tier AI fallback system** for maximum reliability:
 
@@ -57,6 +58,13 @@ The app uses a **4-tier AI fallback system** for maximum reliability:
 - Each model gets 3 retry attempts with exponential backoff (2s → 4s → 8s)
 - If all 3 attempts fail, automatically falls back to the next model
 - Users never notice the switch - completely transparent
+
+**Custom API Key Strategy (New in v3.7.1):**
+If you use your own key:
+
+1. Tries **Gemini 2.5 Pro** (Best quality)
+2. If Pro fails (e.g., Free Tier limit), instantly falls back to **Gemini 2.5 Flash** using the *same key*.
+3. Bypasses all app-level daily limits.
 
 **Image Merging:**
 
