@@ -1,6 +1,6 @@
 # Privacy Policy (Italiano)
 
-**Ultimo aggiornamento: 14 Dicembre 2025**
+## Ultimo aggiornamento: 14 Dicembre 2025
 
 La presente Privacy Policy descrive le modalità di gestione dell'applicazione **Doctor Love** (di seguito "l'Applicazione") in riferimento al trattamento dei dati personali degli utenti.
 
@@ -42,9 +42,9 @@ L'utente può in qualsiasi momento:
 
 ---
 
-# Privacy Policy (English)
+## Privacy Policy (English)
 
-**Last Updated: December 14, 2025**
+### Last Updated: December 14, 2025
 
 This Privacy Policy describes how **Doctor Love** (hereinafter "the Application") manages user personal data.
 
@@ -82,4 +82,4 @@ Data (screenshots) are processed exclusively to provide the "Chat Analysis" serv
 The user can at any time:
 
 * Delete all data saved in the app via the "Delete Data" button in Settings.
-* Uninstall the app, removing all local traces.com
+* Uninstall the app, removing all local traces.

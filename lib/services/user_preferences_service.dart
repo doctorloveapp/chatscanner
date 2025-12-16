@@ -26,13 +26,23 @@ class UserPreferencesService {
 
   /// Check if user has set a custom API key
   static Future<bool> hasCustomApiKey() async {
-    final key = await _secureStorage.read(key: _keyApiKey);
-    return key != null && key.isNotEmpty;
+    try {
+      final key = await _secureStorage.read(key: _keyApiKey);
+      return key != null && key.isNotEmpty;
+    } catch (e) {
+      debugPrint('⚠️ Error reading custom API key: $e');
+      return false; // Fallback to no custom key
+    }
   }
 
   /// Get user's custom API key (returns null if not set)
   static Future<String?> getCustomApiKey() async {
-    return await _secureStorage.read(key: _keyApiKey);
+    try {
+      return await _secureStorage.read(key: _keyApiKey);
+    } catch (e) {
+      debugPrint('⚠️ Error reading custom API key: $e');
+      return null;
+    }
   }
 
   /// Save user's custom API key securely

@@ -349,5 +349,171 @@ class TranslationService extends ChangeNotifier {
       'it': 'Modalità Illimitata',
       'en': 'Unlimited Mode',
     },
+    'anonymous_100': {
+      'it': '100% Anonimo',
+      'en': '100% Anonymous',
+    },
+
+    // V3.7.2 MISSING TRANSLATIONS
+    // API KEY DIALOG
+    'api_key_new_optional': {
+      'it': 'Nuova API Key (opzionale)',
+      'en': 'New API Key (optional)',
+    },
+    'api_key_insert': {
+      'it': 'Inserisci API Key',
+      'en': 'Insert API Key',
+    },
+    'api_key_paste_tooltip': {
+      'it': 'Incolla',
+      'en': 'Paste',
+    },
+    'api_key_use_this': {
+      'it': 'Usa questa API Key',
+      'en': 'Use this API Key',
+    },
+    'api_key_active': {
+      'it': 'Attiva',
+      'en': 'Active',
+    },
+    'api_key_disabled_default': {
+      'it': 'Disattivata (Usa default)',
+      'en': 'Disabled (Use default)',
+    },
+    'api_key_benefits_title': {
+      'it': 'Vantaggi con la tua Google API Key:',
+      'en': 'Benefits with your Google API Key:',
+    },
+    'api_key_benefit_1': {
+      'it': '✓ Analisi illimitate',
+      'en': '✓ Unlimited analyses',
+    },
+    'api_key_benefit_2': {
+      'it': '✓ Nessun limite giornaliero',
+      'en': '✓ No daily limit',
+    },
+    'api_key_benefit_3': {
+      'it': '✓ Modello Gemini 2.5 Pro',
+      'en': '✓ Gemini 2.5 Pro Model',
+    },
+    'api_key_how_to_title': {
+      'it': '📋 Come ottenere la tua API Key:',
+      'en': '📋 How to get your API Key:',
+    },
+    'api_key_instructions': {
+      'it':
+          '1. Vai su Google AI Studio\n2. Accedi e clicca "Get API Key"\n3. Clicca "Create API Key" (seleziona "New Project")\n4. Copia la chiave e incollala qui sotto',
+      'en':
+          '1. Go to Google AI Studio\n2. Sign in and click "Get API Key"\n3. Click "Create API Key" (select "New Project")\n4. Copy the key and paste it below',
+    },
+    'api_key_open_studio': {
+      'it': 'Apri Google AI Studio',
+      'en': 'Open Google AI Studio',
+    },
+    'api_key_remove_title': {
+      'it': 'Rimuovere API Key?',
+      'en': 'Remove API Key?',
+    },
+    'api_key_remove_desc': {
+      'it': 'Tornerai al piano gratuito con 5 analisi al giorno.',
+      'en': 'You will return to the free plan with 5 analyses per day.',
+    },
+    'btn_remove_key': {
+      'it': 'Rimuovi Key',
+      'en': 'Remove Key',
+    },
+    'btn_update': {
+      'it': 'Aggiorna',
+      'en': 'Update',
+    },
+    'api_key_invalid_format': {
+      'it': '❌ API Key non valida. Deve iniziare con "AIzaSy"',
+      'en': '❌ Invalid API Key. Must start with "AIzaSy"',
+    },
+    'api_key_saved_active': {
+      'it': '✅ Chiave salvata e attivata! Analisi illimitate 🎉',
+      'en': '✅ Key saved and activated! Unlimited analyses 🎉',
+    },
+    'api_key_removed_msg': {
+      'it': '✅ API Key rimossa',
+      'en': '✅ API Key removed',
+    },
+
+    // DARK MODE DIALOG
+    'theme_dark_title': {
+      'it': 'Tema Scuro',
+      'en': 'Dark Mode',
+    },
+    'theme_dark': {
+      'it': 'Tema Scuro',
+      'en': 'Dark Mode',
+    },
+    'theme_light': {
+      'it': 'Tema Chiaro',
+      'en': 'Light Mode',
+    },
+    'theme_toggle_hint': {
+      'it': 'Tocca per cambiare',
+      'en': 'Tap to switch',
+    },
+    'theme_auto_save': {
+      'it': 'Il tema viene salvato automaticamente.',
+      'en': 'Theme is saved automatically.',
+    },
+
+    // VERSION DIALOG
+    'version_title': {
+      'it': 'Versione',
+      'en': 'Version',
+    },
+    'version_label': {
+      'it': 'Versione: ',
+      'en': 'Version: ',
+    },
+    'build_label': {
+      'it': 'Build: ',
+      'en': 'Build: ',
+    },
+    'version_latest': {
+      'it': '✅ Sei alla versione più recente!',
+      'en': '✅ You are on the latest version!',
+    },
+    'btn_ok': {
+      'it': 'OK',
+      'en': 'OK',
+    },
+
+    // DELETE DATA
+    'delete_data_title': {
+      'it': 'Elimina Dati',
+      'en': 'Delete Data',
+    },
+    'delete_data_success': {
+      'it': '✅ Tutti i dati sono stati eliminati',
+      'en': '✅ All data has been deleted',
+    },
+    'screenshots_deleted': {
+      'it': '🗑️ Tutti gli screenshot sono stati eliminati',
+      'en': '🗑️ All screenshots have been deleted',
+    },
+    'screenshots_new_ready': {
+      'it': '📸 nuovi screenshot pronti per l\'analisi!',
+      'en': '📸 new screenshots ready for analysis!',
+    },
+    // DAILY LIMIT DIALOG
+    'daily_limit_title': {
+      'it': 'Analisi Giornaliere',
+      'en': 'Daily Analysis',
+    },
+    'daily_limit_explanation': {
+      'it':
+          'Hai a disposizione {limit} analisi gratuite ogni giorno.\n\nIl contatore si resetta automaticamente a mezzanotte.\n\n💜 Viola = 4+ rimaste\n🧡 Arancio = 1-3 rimaste\n❤️ Rosso = 0 rimaste',
+      'en':
+          'You have {limit} free analyses available every day.\n\nThe counter resets automatically at midnight.\n\n💜 Purple = 4+ left\n🧡 Orange = 1-3 left\n❤️ Red = 0 left',
+    },
+    'btn_got_it_normal': {
+      'it': 'Ho capito!',
+      'en': 'Got it!',
+    },
   };
 }

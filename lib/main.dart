@@ -567,7 +567,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           Text(
             text,
             style: TextStyle(
-              color: isDestructive ? Colors.red : Colors.black87,
+              color: isDestructive
+                  ? Colors.red
+                  : (ThemeService().isDarkMode ? Colors.white : Colors.black87),
               fontWeight: isDestructive ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -701,14 +703,14 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   obscureText: hasKey,
                   decoration: InputDecoration(
                     labelText: hasKey
-                        ? 'Nuova API Key (opzionale)'
-                        : 'Inserisci API Key',
+                        ? TranslationService().tr('api_key_new_optional')
+                        : TranslationService().tr('api_key_insert'),
                     hintText: TranslationService().tr('dialog_api_hint'),
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.vpn_key),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.paste),
-                      tooltip: 'Incolla',
+                      tooltip: TranslationService().tr('api_key_paste_tooltip'),
                       onPressed: () async {
                         final data = await Clipboard.getData('text/plain');
                         if (data?.text != null) {
@@ -729,17 +731,18 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                         children: [
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text(
-                              'Usa questa API Key',
-                              style: TextStyle(
+                            title: Text(
+                              TranslationService().tr('api_key_use_this'),
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
                             subtitle: Text(
                               isEnabled
-                                  ? 'Attiva'
-                                  : 'Disattivata (Usa default)',
+                                  ? TranslationService().tr('api_key_active')
+                                  : TranslationService()
+                                      .tr('api_key_disabled_default'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isEnabled ? Colors.green : Colors.grey,
@@ -795,22 +798,23 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     },
                   )
                 else ...[
-                  const Text(
-                    'Vantaggi con la tua Google API Key:',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  Text(
+                    TranslationService().tr('api_key_benefits_title'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    '✓ Analisi illimitate',
-                    style: TextStyle(fontSize: 12),
+                  Text(
+                    TranslationService().tr('api_key_benefit_1'),
+                    style: const TextStyle(fontSize: 12),
                   ),
-                  const Text(
-                    '✓ Nessun limite giornaliero',
-                    style: TextStyle(fontSize: 12),
+                  Text(
+                    TranslationService().tr('api_key_benefit_2'),
+                    style: const TextStyle(fontSize: 12),
                   ),
-                  const Text(
-                    '✓ Modello Gemini 2.5 Pro',
-                    style: TextStyle(fontSize: 12),
+                  Text(
+                    TranslationService().tr('api_key_benefit_3'),
+                    style: const TextStyle(fontSize: 12),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -825,20 +829,17 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '📋 Come ottenere la tua API Key:',
-                          style: TextStyle(
+                        Text(
+                          TranslationService().tr('api_key_how_to_title'),
+                          style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          '1. Vai su Google AI Studio\n'
-                          '2. Accedi e clicca "Get API Key"\n'
-                          '3. Clicca "Create API Key" (seleziona "New Project")\n'
-                          '4. Copia la chiave e incollala qui sotto',
-                          style: TextStyle(fontSize: 11),
+                        Text(
+                          TranslationService().tr('api_key_instructions'),
+                          style: const TextStyle(fontSize: 11),
                         ),
                         const SizedBox(height: 6),
                         InkWell(
@@ -853,18 +854,18 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                               );
                             }
                           },
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.open_in_new,
                                 size: 14,
                                 color: Color(0xFFBA68C8),
                               ),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
-                                'Apri Google AI Studio',
-                                style: TextStyle(
+                                TranslationService().tr('api_key_open_studio'),
+                                style: const TextStyle(
                                   color: Color(0xFFBA68C8),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
@@ -889,20 +890,21 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   final confirm = await showDialog<bool>(
                     context: ctx,
                     builder: (c) => AlertDialog(
-                      title: const Text('Rimuovere API Key?'),
-                      content: const Text(
-                        'Tornerai al piano gratuito con 5 analisi al giorno.',
+                      title:
+                          Text(TranslationService().tr('api_key_remove_title')),
+                      content: Text(
+                        TranslationService().tr('api_key_remove_desc'),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(c, false),
-                          child: const Text('Annulla'),
+                          child: Text(TranslationService().tr('btn_cancel')),
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(c, true),
-                          child: const Text(
-                            'Rimuovi',
-                            style: TextStyle(color: Colors.red),
+                          child: Text(
+                            TranslationService().tr('btn_remove'),
+                            style: const TextStyle(color: Colors.red),
                           ),
                         ),
                       ],
@@ -916,21 +918,20 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                       if (mounted) {
                         await _loadRemainingAnalyses(); // Update UI immediately
                         setState(() {});
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('✅ API Key rimossa'),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
-                        }
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('✅ API Key rimossa'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
                       }
                     }
                   }
                 },
-                child: const Text(
-                  'Rimuovi Key',
-                  style: TextStyle(color: Colors.red),
+                child: Text(
+                  TranslationService().tr('btn_remove_key'),
+                  style: const TextStyle(color: Colors.red),
                 ),
               ),
             TextButton(
@@ -951,9 +952,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                 // Basic validation
                 if (!newKey.startsWith('AIzaSy') || newKey.length < 30) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                        '❌ API Key non valida. Deve iniziare con "AIzaSy"',
+                        TranslationService().tr('api_key_invalid_format'),
                       ),
                       backgroundColor: Colors.red,
                     ),
@@ -972,20 +973,21 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
                 if (mounted) {
                   await _loadRemainingAnalyses(); // Logic inside checks mounted
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          '✅ Chiave salvata e attivata! Analisi illimitate 🎉',
-                        ),
-                        backgroundColor: Colors.green,
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        TranslationService().tr('api_key_saved_active'),
                       ),
-                    );
-                  }
+                      backgroundColor: Colors.green,
+                    ),
+                  );
                 }
               },
               child: Text(
-                hasKey ? 'Aggiorna' : 'Salva',
+                hasKey
+                    ? TranslationService().tr('btn_update')
+                    : TranslationService().tr('btn_save'),
                 style: const TextStyle(color: Colors.white),
               ),
             ),
@@ -1001,11 +1003,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.dark_mode, color: Color(0xFFBA68C8)),
-              SizedBox(width: 8),
-              Text('Tema Scuro'),
+              const Icon(Icons.dark_mode, color: Color(0xFFBA68C8)),
+              const SizedBox(width: 8),
+              Text(TranslationService().tr('theme_dark_title')),
             ],
           ),
           content: Column(
@@ -1018,9 +1020,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                   color: const Color(0xFFBA68C8),
                 ),
                 title: Text(
-                  themeService.isDarkMode ? 'Tema Scuro' : 'Tema Chiaro',
+                  themeService.isDarkMode
+                      ? TranslationService().tr('theme_dark')
+                      : TranslationService().tr('theme_light'),
                 ),
-                subtitle: const Text('Tocca per cambiare'),
+                subtitle: Text(TranslationService().tr('theme_toggle_hint')),
                 trailing: Switch(
                   value: themeService.isDarkMode,
                   activeThumbColor: const Color(0xFFBA68C8),
@@ -1032,7 +1036,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               ),
               const SizedBox(height: 8),
               Text(
-                'Il tema viene salvato automaticamente.',
+                TranslationService().tr('theme_auto_save'),
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             ],
@@ -1040,7 +1044,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Chiudi'),
+              child: Text(TranslationService().tr('btn_close')),
             ),
           ],
         ),
@@ -1121,30 +1125,32 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.system_update, color: Color(0xFFBA68C8)),
-            SizedBox(width: 8),
-            Text('Versione'),
+            const Icon(Icons.system_update, color: Color(0xFFBA68C8)),
+            const SizedBox(width: 8),
+            Text(TranslationService().tr('version_title')),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Versione: ${packageInfo.version}'),
-            Text('Build: ${packageInfo.buildNumber}'),
+            Text(
+                '${TranslationService().tr('version_label')}${packageInfo.version}'),
+            Text(
+                '${TranslationService().tr('build_label')}${packageInfo.buildNumber}'),
             const SizedBox(height: 8),
-            const Text(
-              '✅ Sei alla versione più recente!',
-              style: TextStyle(color: Colors.green),
+            Text(
+              TranslationService().tr('version_latest'),
+              style: const TextStyle(color: Colors.green),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK'),
+            child: Text(TranslationService().tr('btn_ok')),
           ),
         ],
       ),
@@ -1160,7 +1166,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           children: [
             const Icon(Icons.language, color: Color(0xFFBA68C8)),
             const SizedBox(width: 8),
-            Text(TranslationService().tr('menu_language')),
+            Flexible(child: Text(TranslationService().tr('menu_language'))),
           ],
         ),
         content: Column(
@@ -1201,11 +1207,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.delete_forever, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Elimina Dati'),
+            const Icon(Icons.delete_forever, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(TranslationService().tr('delete_data_title')),
           ],
         ),
         content: Text(TranslationService().tr('dialog_delete_content')),
@@ -1221,9 +1227,11 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                 Navigator.pop(ctx);
               }
               if (mounted) {
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Tutti i dati sono stati eliminati'),
+                  SnackBar(
+                    content:
+                        Text(TranslationService().tr('delete_data_success')),
                     backgroundColor: Colors.green,
                   ),
                 );
@@ -1300,7 +1308,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                "📸 $newCount nuovi screenshot pronti per l'analisi!",
+                "📸 $newCount ${TranslationService().tr('screenshots_new_ready')}",
               ),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
@@ -1343,10 +1351,10 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
       if (mounted && showMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("🗑️ Tutti gli screenshot sono stati eliminati"),
+          SnackBar(
+            content: Text(TranslationService().tr('screenshots_deleted')),
             backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -2106,7 +2114,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     children: [
                       Text(
                         _isCustomKeyEnabled
-                            ? TranslationService().tr('instant_analysis')
+                            ? TranslationService().tr('unlimited_mode')
                             : "${TranslationService().tr('instant_analysis')} · ${TranslationService().tr('daily_limit_subtitle')}",
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
@@ -2116,7 +2124,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "100% anonimo",
+                        TranslationService().tr('anonymous_100'),
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           color: Colors.white.withValues(alpha: 0.5),
@@ -2144,7 +2152,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             const SizedBox(width: 8),
             Flexible(
               child: Text(
-                'Analisi Giornaliere',
+                TranslationService().tr('daily_limit_title'),
                 style: GoogleFonts.orbitron(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -2155,16 +2163,13 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
           ],
         ),
         content: Text(
-          'Hai a disposizione ${RemoteConfigService.dailyAnalysisLimit} analisi gratuite ogni giorno.\n\n'
-          'Il contatore si resetta automaticamente a mezzanotte.\n\n'
-          '💜 Viola = 4+ rimaste\n'
-          '🧡 Arancio = 1-3 rimaste\n'
-          '❤️ Rosso = 0 rimaste',
+          TranslationService().tr('daily_limit_explanation').replaceAll(
+              '{limit}', '${RemoteConfigService.dailyAnalysisLimit}'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Ho capito!'),
+            child: Text(TranslationService().tr('btn_got_it_normal')),
           ),
         ],
       ),
@@ -2403,6 +2408,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
               }
               if (mounted) {
                 _loadRemainingAnalyses();
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
