@@ -515,5 +515,183 @@ class TranslationService extends ChangeNotifier {
       'it': 'Ho capito!',
       'en': 'Got it!',
     },
+
+    // LOADING MESSAGES (during analysis)
+    'loading_init': {
+      'it': 'Inizializzazione...',
+      'en': 'Initializing...',
+    },
+    'loading_1': {
+      'it': 'Analisi pattern comunicativi...',
+      'en': 'Analyzing communication patterns...',
+    },
+    'loading_2': {
+      'it': 'Elaborazione tempi di risposta...',
+      'en': 'Processing response times...',
+    },
+    'loading_3': {
+      'it': 'Valutazione coinvolgimento emotivo...',
+      'en': 'Evaluating emotional engagement...',
+    },
+    'loading_4': {
+      'it': 'Calcolo indice di interesse...',
+      'en': 'Calculating interest index...',
+    },
+    'loading_5': {
+      'it': 'Analisi linguaggio non verbale...',
+      'en': 'Analyzing non-verbal language...',
+    },
+    'loading_6': {
+      'it': 'Elaborazione risultati finali...',
+      'en': 'Processing final results...',
+    },
+
+    // RESULT SECTION
+    'result_section_analysis': {
+      'it': 'ANALISI',
+      'en': 'ANALYSIS',
+    },
+    'result_section_rating': {
+      'it': 'VALUTAZIONE FRASI',
+      'en': 'LINE RATINGS',
+    },
+    'result_section_nextmove': {
+      'it': 'PROSSIMA MOSSA',
+      'en': 'NEXT MOVE',
+    },
+    'result_copy': {
+      'it': 'Copia',
+      'en': 'Copy',
+    },
+    'result_copied': {
+      'it': 'Copiato! 📋',
+      'en': 'Copied! 📋',
+    },
+    'result_new_analysis': {
+      'it': 'NUOVA ANALISI',
+      'en': 'NEW ANALYSIS',
+    },
+
+    // ERROR MESSAGES
+    'error_service_overloaded': {
+      'it': '😔 Servizio sovraccarico, riprova tra poco',
+      'en': '😔 Service overloaded, try again shortly',
+    },
+    'error_quota_exceeded': {
+      'it': '⏰ Quota giornaliera esaurita! Torna domani 💜',
+      'en': '⏰ Daily quota exceeded! Come back tomorrow 💜',
+    },
+    'error_generic': {
+      'it': '❌ Si è verificato un errore',
+      'en': '❌ An error occurred',
+    },
+
+    // SHARE APP
+    'share_message': {
+      'it':
+          '💕 Prova Doctor Love - Analizza le tue chat e scopri se c\'è interesse!\\n\\nhttps://play.google.com/store/apps/details?id=com.doctorloveapp.chatscanner',
+      'en':
+          '💕 Try Doctor Love - Analyze your chats and discover if there\'s interest!\\n\\nhttps://play.google.com/store/apps/details?id=com.doctorloveapp.chatscanner',
+    },
+
+    // SCREEN RECORDING PERMISSION
+    'permission_screen_record': {
+      'it':
+          '⚠️ Concedi il permesso di registrazione schermo nella finestra popup',
+      'en': '⚠️ Grant screen recording permission in the popup window',
+    },
+
+    // RESULT SECTION - MORE
+    'result_verdict': {
+      'it': 'VERDETTO',
+      'en': 'VERDICT',
+    },
+    'result_line_analysis': {
+      'it': 'ANALISI FRASI',
+      'en': 'LINE ANALYSIS',
+    },
+    'result_next_move': {
+      'it': 'PROSSIMA MOSSA',
+      'en': 'NEXT MOVE',
+    },
+    'result_copied_clipboard': {
+      'it': 'Copiato negli appunti!',
+      'en': 'Copied to clipboard!',
+    },
+    'btn_copy': {
+      'it': 'COPIA',
+      'en': 'COPY',
+    },
+    'btn_add_more_screens': {
+      'it': 'AGGIUNGI ALTRI SCREEN',
+      'en': 'ADD MORE SCREENSHOTS',
+    },
+    'btn_analyze_another': {
+      'it': "ANALIZZA UN'ALTRA CHAT",
+      'en': 'ANALYZE ANOTHER CHAT',
+    },
+    'result_interest': {
+      'it': 'INTERESSE',
+      'en': 'INTEREST',
+    },
+
+    // ERROR MESSAGES - DETAILED
+    'error_rate_limit': {
+      'it': 'Hai raggiunto il limite di {limit} analisi oggi. Riprova domani!',
+      'en':
+          'You reached the limit of {limit} analyses today. Try again tomorrow!',
+    },
+    'error_quota_exhausted': {
+      'it': '⚠️ La tua API Key ha esaurito la quota disponibile.',
+      'en': '⚠️ Your API Key has exhausted its available quota.',
+    },
+    'error_all_models_failed': {
+      'it': 'Servizio temporaneamente sovraccarico, riprova tra 1 minuto',
+      'en': 'Service temporarily overloaded, try again in 1 minute',
+    },
+    'error_invalid_api_key': {
+      'it': '❌ La tua API Key non è valida. Controlla di averla copiata bene.',
+      'en': '❌ Your API Key is not valid. Check that you copied it correctly.',
+    },
+    'error_network': {
+      'it': 'Errore di connessione. Verifica internet.',
+      'en': 'Connection error. Check your internet.',
+    },
+    'error_empty_response': {
+      'it': "L'AI non ha risposto. Prova con screenshot più chiari.",
+      'en': 'The AI did not respond. Try with clearer screenshots.',
+    },
+    'error_prefix': {
+      'it': 'Errore',
+      'en': 'Error',
+    },
+    'error_analysis_failed': {
+      'it': 'Analisi fallita',
+      'en': 'Analysis failed',
+    },
+
+    // API KEY FALLBACK DIALOG
+    'fallback_title': {
+      'it': '⚠️ API Key Consumata',
+      'en': '⚠️ API Key Exhausted',
+    },
+    'fallback_content': {
+      'it':
+          "La tua API Key ha raggiunto il limite di quota.\n\nAbbiamo completato l'analisi usando il sistema di riserva di Doctor Love.\n\nVuoi disabilitare temporaneamente la tua chiave?",
+      'en':
+          "Your API Key has reached its quota limit.\n\nWe completed the analysis using Doctor Love's backup system.\n\nWould you like to temporarily disable your key?",
+    },
+    'fallback_keep_active': {
+      'it': 'Mantieni attiva',
+      'en': 'Keep active',
+    },
+    'fallback_disable_key': {
+      'it': 'Disabilita Key',
+      'en': 'Disable Key',
+    },
+    'fallback_disabled_success': {
+      'it': '✅ Chiave disabilitata. Usiamo il sistema standard.',
+      'en': '✅ Key disabled. Using standard system.',
+    },
   };
 }

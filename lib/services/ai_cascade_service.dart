@@ -10,6 +10,7 @@ import 'package:image/image.dart' as img;
 import '../env/env.dart';
 import 'remote_config_service.dart';
 import 'user_preferences_service.dart';
+import 'translation_service.dart';
 
 /// Available models for debug selection
 /// When debugModeEnabled = false, this enum is ignored
@@ -74,8 +75,8 @@ class AICascadeService {
     }
   }
 
-  // Doctor Love system prompt - shared across all models
-  static const String _doctorLovePrompt = '''
+  // Doctor Love system prompt - ITALIAN VERSION
+  static const String _doctorLovePromptIT = '''
 Sei Doctor Love, il dating coach più cinico, geniale e brutale d'Italia.  
 Analizza uno o più screenshot di chat (WhatsApp, Instagram, Telegram, ecc.).  
 Considera tutto: testo, emoji, timestamp, lunghezza messaggi, chi inizia, chi risponde subito o dopo ore, doppi check, punteggiatura.
@@ -102,6 +103,42 @@ Regole ferree:
 - Il JSON deve essere 100% parsabile anche su device lenti
 - Se l'interesse è altissimo usa emoji 🔥, se è morto usa 💀
 ''';
+
+  // Doctor Love system prompt - ENGLISH VERSION
+  static const String _doctorLovePromptEN = '''
+You are Doctor Love, the most cynical, brilliant, and brutally honest dating coach.  
+Analyze one or more chat screenshots (WhatsApp, Instagram, Telegram, etc.).  
+Consider everything: text, emojis, timestamps, message length, who initiates, who responds immediately or after hours, read receipts, punctuation.
+
+RETURN ONLY and EXCLUSIVELY a valid JSON object (no markdown, no ```json, no text before or after) with EXACTLY this schema:
+
+{
+  "score": 0-100,
+  "analysis": "short string (max 140 characters), witty, edgy, brutal if needed, in perfect English",
+  "line_rating": [
+    {
+      "text": "exact text of the phrase (max 80 characters)",
+      "sender": "me" or "them",
+      "rating": 1-10
+    }
+  ],
+  "next_move": "the exact message to send now (1-3 sentences max, natural, perfect English, that maximizes your chances). If the chat is dead just write: 'Move on, there's nothing left here 💀'"
+}
+
+Strict rules:
+- Always be honest, never nice just to be nice
+- Use modern casual English (no formal old-school phrases)
+- If the screenshot is unreadable or empty → score 0 and analysis "Screenshot empty or unreadable"
+- The JSON must be 100% parsable even on slow devices
+- If interest is very high use emoji 🔥, if it's dead use 💀
+''';
+
+  /// Get the appropriate prompt based on current language setting
+  static String get _doctorLovePrompt {
+    // Import TranslationService to check current language
+    final currentLang = TranslationService().currentLanguage;
+    return currentLang == 'en' ? _doctorLovePromptEN : _doctorLovePromptIT;
+  }
 
   /// Check if user has remaining analyses for today
   static Future<int> getRemainingAnalyses() async {
@@ -707,37 +744,39 @@ Regole ferree:
 
     // Differentiate between App Limit and API Quota
     if (errorStr.contains('rate_limit_exceeded')) {
-      return 'Hai raggiunto il limite di $_maxAnalysesPerDay analisi oggi. Riprova domani!';
+      return TranslationService()
+          .tr('error_rate_limit')
+          .replaceAll('{limit}', '$_maxAnalysesPerDay');
     }
     // Deep check for API quota - usually triggered by Custom Keys
     if (errorStr.contains('quota') ||
         errorStr.contains('resource_exhausted') ||
         errorStr.contains('429')) {
-      return '⚠️ La tua API Key ha esaurito la quota disponibile.';
+      return TranslationService().tr('error_quota_exhausted');
     }
 
     if (errorStr.contains('all_models_failed')) {
-      return 'Servizio temporaneamente sovraccarico, riprova tra 1 minuto';
+      return TranslationService().tr('error_all_models_failed');
     }
     if (errorStr.contains('api_key_invalid') ||
         errorStr.contains('invalid api key') ||
         errorStr.contains('invalid_api_key')) {
-      return '❌ La tua API Key non è valida. Controlla di averla copiata bene.';
+      return TranslationService().tr('error_invalid_api_key');
     }
     if (errorStr.contains('network') ||
         errorStr.contains('connection') ||
         errorStr.contains('timeout')) {
-      return 'Errore di connessione. Verifica internet.';
+      return TranslationService().tr('error_network');
     }
     if (errorStr.contains('empty response')) {
-      return 'L\'AI non ha risposto. Prova con screenshot piu chiari.';
+      return TranslationService().tr('error_empty_response');
     }
 
     // Generic fallback
     final shortError = error.toString();
     if (shortError.length > 100) {
-      return 'Errore: ${shortError.substring(0, 100)}...';
+      return '${TranslationService().tr('error_prefix')}: ${shortError.substring(0, 100)}...';
     }
-    return 'Analisi fallita: $shortError';
+    return '${TranslationService().tr('error_analysis_failed')}: $shortError';
   }
 }

@@ -363,7 +363,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   bool _isLoading = false;
   String? _error;
   Map<String, dynamic>? _analysisResult;
-  String _loadingMessage = "Inizializzazione...";
+  String _loadingMessage = "";
 
   static bool _sessionInstructionsShown =
       false; // Static flag for session strictness
@@ -373,14 +373,15 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
   final ImagePicker _picker = ImagePicker();
 
-  final List<String> _loadingMessages = [
-    "Analisi pattern comunicativi...",
-    "Elaborazione tempi di risposta...",
-    "Valutazione coinvolgimento emotivo...",
-    "Calcolo indice di interesse...",
-    "Analisi linguaggio non verbale...",
-    "Elaborazione risultati finali...",
-  ];
+  /// Get translated loading messages dynamically
+  List<String> get _loadingMessages => [
+        TranslationService().tr('loading_1'),
+        TranslationService().tr('loading_2'),
+        TranslationService().tr('loading_3'),
+        TranslationService().tr('loading_4'),
+        TranslationService().tr('loading_5'),
+        TranslationService().tr('loading_6'),
+      ];
 
   @override
   void initState() {
@@ -658,7 +659,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
   /// Share app
   Future<void> _shareApp() async {
     await Share.share(
-      '💕 Prova Doctor Love - Analizza le tue chat e scopri se c\'è interesse!\n\nhttps://play.google.com/store/apps/details?id=com.doctorloveapp.chatscanner',
+      TranslationService().tr('share_message').replaceAll('\\n', '\n'),
       subject: 'Doctor Love App',
     );
   }
@@ -2390,15 +2391,12 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("⚠️ API Key Consumata"),
-        content: const Text(
-            "La tua API Key ha raggiunto il limite di quota.\n\n"
-            "Abbiamo completato l'analisi usando il sistema di riserva di Doctor Love.\n\n"
-            "Vuoi disabilitare temporaneamente la tua chiave?"),
+        title: Text(TranslationService().tr('fallback_title')),
+        content: Text(TranslationService().tr('fallback_content')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Mantieni attiva"),
+            child: Text(TranslationService().tr('fallback_keep_active')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -2410,14 +2408,14 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                 _loadRemainingAnalyses();
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(
-                        "✅ Chiave disabilitata. Usiamo il sistema standard."),
+                        TranslationService().tr('fallback_disabled_success')),
                   ),
                 );
               }
             },
-            child: const Text("Disabilita Key"),
+            child: Text(TranslationService().tr('fallback_disable_key')),
           ),
         ],
       ),
@@ -2504,7 +2502,7 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     ),
                   ),
                   Text(
-                    "INTEREST",
+                    TranslationService().tr('result_interest'),
                     style: GoogleFonts.orbitron(
                       fontSize: 12,
                       color: color.withValues(alpha: 0.8),
@@ -2518,7 +2516,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         const SizedBox(height: 30),
 
         // Analysis
-        _buildSectionTitle("VERDETTO", Colors.white),
+        _buildSectionTitle(
+            TranslationService().tr('result_verdict'), Colors.white),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -2546,7 +2545,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
 
         // Line Ratings
         if (_analysisResult!['line_rating'] != null) ...[
-          _buildSectionTitle("ANALISI FRASI", Colors.white),
+          _buildSectionTitle(
+              TranslationService().tr('result_line_analysis'), Colors.white),
           ...(_analysisResult!['line_rating'] as List).map((item) {
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -2601,7 +2601,8 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         ],
 
         // Next Move
-        _buildSectionTitle("PROSSIMA MOSSA", Colors.white),
+        _buildSectionTitle(
+            TranslationService().tr('result_next_move'), Colors.white),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -2627,13 +2628,15 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
                     ClipboardData(text: _analysisResult!['next_move']),
                   );
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Copiato negli appunti!")),
+                    SnackBar(
+                        content: Text(TranslationService()
+                            .tr('result_copied_clipboard'))),
                   );
                 },
                 icon: const Icon(Icons.copy, color: Colors.white),
-                label: const Text(
-                  "COPIA",
-                  style: TextStyle(
+                label: Text(
+                  TranslationService().tr('btn_copy'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -2654,9 +2657,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
         OutlinedButton.icon(
           onPressed: _showAddScreenshotsOptions,
           icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
-          label: const Text(
-            "AGGIUNGI ALTRI SCREEN",
-            style: TextStyle(color: Colors.white),
+          label: Text(
+            TranslationService().tr('btn_add_more_screens'),
+            style: const TextStyle(color: Colors.white),
           ),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: Colors.white),
@@ -2674,9 +2677,9 @@ class _ChatScannerHomeState extends State<ChatScannerHome>
             onPressed: () async {
               await _clearAllScreenshots(showMessage: false);
             },
-            child: const Text(
-              "ANALIZZA UN'ALTRA CHAT",
-              style: TextStyle(color: Colors.white),
+            child: Text(
+              TranslationService().tr('btn_analyze_another'),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ),

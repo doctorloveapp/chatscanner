@@ -6,7 +6,7 @@
   
 Analyze your chat screenshots and get AI-driven insights about interest levels
 
-![Version](https://img.shields.io/badge/version-3.7.1-blue.svg)
+![Version](https://img.shields.io/badge/version-3.7.2-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Android-green.svg)
 ![Flutter](https://img.shields.io/badge/Flutter-3.2+-02569B.svg?logo=flutter)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
@@ -29,7 +29,7 @@ Analyze your chat screenshots and get AI-driven insights about interest levels
 - 🖼️ **Unlimited Screenshots** - Auto-merges images to bypass API limits
 - 🔑 **BYOK Mode** - Use your own Google Gemini API key (Auto-fallback: Pro → Flash)
 - ⚙️ **Professional Menu** - Settings, privacy, share, credits and more
-- 🌍 **Multi-language Support** - Italiano 🇮🇹 / English 🇺🇸 (Auto-detect & Manual Switch)
+- 🌍 **Multi-language Support** - Italiano 🇮🇹 / English 🇺🇸 (UI, AI Responses & Error Messages)
 - ✨ **Dynamic UI** - "Unlimited" branding when using custom keys
 
 ---
